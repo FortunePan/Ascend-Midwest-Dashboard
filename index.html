@@ -140,6 +140,12 @@ body{font-family:'Nunito','Georgia',sans-serif;background:var(--bg);color:var(--
 
   <div class="page" id="page-membership">
     <div id="mem-m" class="metrics"></div>
+    <div class="sh">Active member trend — new registrations by month</div>
+    <div class="chart-card" style="margin-bottom:1rem">
+      <div class="chart-sub" style="margin-bottom:10px">Monthly new member registrations from CCR — tracks chapter growth over time</div>
+      <div class="cw" style="height:180px"><canvas id="cTrend" role="img" aria-label="Member registration trend"></canvas></div>
+    </div>
+    <div class="sh">Member snapshot — type split and top employers</div>
     <div class="charts">
       <div class="chart-card">
         <div class="chart-title">Member type split</div>
@@ -353,8 +359,49 @@ const SPONSORS=[
 const SP_NAMES=SPONSORS.map(s=>s.name.toLowerCase());
 
 // ── STORAGE ───────────────────────────────────────────────────────────────────
-function save(t,d,f){try{localStorage.setItem('ascv5_'+t,JSON.stringify(d));localStorage.setItem('ascv5_'+t+'_m',JSON.stringify({f,rows:d.length,saved:new Date().toISOString()}));}catch(e){}}
+// ── SHARED + LOCAL STORAGE ────────────────────────────────────────────────
+// OPTION A — Local only (default): each user's browser stores their own data
+// OPTION B — Shared (setup required): one upload, everyone sees same data
+//   Setup: Click "Enable shared storage" → follow prompts to configure JSONBin.io (free)
+
+function save(t,d,f){
+  try{localStorage.setItem('ascv5_'+t,JSON.stringify(d));localStorage.setItem('ascv5_'+t+'_m',JSON.stringify({f,rows:d.length,saved:new Date().toISOString()}));}catch(e){}
+  // If shared storage is configured, also push to shared bin
+  const binId=localStorage.getItem('ascend_bin_id');const apiKey=localStorage.getItem('ascend_api_key');
+  if(binId&&apiKey){
+    // Build full payload after a short delay to allow all files to load
+    setTimeout(()=>{
+      const payload={ccr:DATA.ccr,events25:DATA.events25,events26:DATA.events26,_saved:new Date().toISOString()};
+      fetch(`https://api.jsonbin.io/v3/b/${binId}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':apiKey,'X-Bin-Versioning':'false'},body:JSON.stringify(payload)})
+        .then(r=>{if(r.ok)document.getElementById('storInfo').innerHTML='✓ Saved to shared store — team will see this data · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Manage</span> · <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear</span>';})
+        .catch(e=>console.log('Shared save failed',e));
+    },500);
+  }
+}
+
 function restore(){
+  // Try shared bin first if configured
+  const binId=localStorage.getItem('ascend_bin_id');const apiKey=localStorage.getItem('ascend_api_key');
+  if(binId&&apiKey){
+    document.getElementById('storInfo').innerHTML='Loading shared data...';
+    return fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`,{headers:{'X-Master-Key':apiKey,'X-Access-Key':apiKey}})
+      .then(r=>r.ok?r.json():null)
+      .then(json=>{
+        if(json&&json.record&&json.record._saved){
+          const p=json.record;let any=false;
+          ['ccr','events25','events26'].forEach(t=>{if(p[t]&&p[t].length){DATA[t]=p[t];document.getElementById('btn-'+t).classList.add('loaded');any=true;}});
+          if(any){updateStatus();renderAll();
+            const d=new Date(p._saved);
+            document.getElementById('storInfo').innerHTML=`Shared data — updated ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Manage</span> · <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear</span>`;
+            return true;}
+        }
+        return restoreLocal();
+      }).catch(()=>restoreLocal());
+  }
+  return Promise.resolve(restoreLocal());
+}
+
+function restoreLocal(){
   let any=false;
   ['ccr','events25','events26'].forEach(t=>{
     try{const r=localStorage.getItem('ascv5_'+t);const m=JSON.parse(localStorage.getItem('ascv5_'+t+'_m')||'null');
@@ -362,7 +409,27 @@ function restore(){
   });
   if(any){updateStatus();renderAll();}return any;
 }
-function clearSaved(){['ccr','events25','events26'].forEach(t=>{localStorage.removeItem('ascv5_'+t);localStorage.removeItem('ascv5_'+t+'_m');DATA[t]=null;document.getElementById('btn-'+t).classList.remove('loaded');});updateStatus();renderAll();}
+
+function clearSaved(){
+  ['ccr','events25','events26'].forEach(t=>{localStorage.removeItem('ascv5_'+t);localStorage.removeItem('ascv5_'+t+'_m');DATA[t]=null;document.getElementById('btn-'+t).classList.remove('loaded');});
+  updateStatus();renderAll();
+}
+
+function shareSetup(){
+  const b=localStorage.getItem('ascend_bin_id')||'';const k=localStorage.getItem('ascend_api_key')||'';
+  const intro=b?'Shared storage is active.\n\nShare this Bin ID and API key with your team so they see the same data:\n\nBin ID: '+b+'\n\nUpdate credentials below, or Cancel to keep current settings.'
+    :'Enable shared storage so your whole team sees the same data after one upload.\n\nSetup (2 min, free):\n1. Go to jsonbin.io → Create free account\n2. Click Bins → Create New Bin → paste {} → Save\n3. Copy the Bin ID from the URL\n4. Go to Account → API Keys → copy your Master Key\n5. Paste both below';
+  const newB=prompt(intro,'\nBin ID:');if(newB===null)return;
+  const newK=prompt('Master Key:','');if(newK===null)return;
+  localStorage.setItem('ascend_bin_id',newB.trim());localStorage.setItem('ascend_api_key',newK.trim());
+  const payload={ccr:DATA.ccr,events25:DATA.events25,events26:DATA.events26,_saved:new Date().toISOString()};
+  if(Object.values(DATA).some(v=>v&&v.length)){
+    fetch(`https://api.jsonbin.io/v3/b/${newB.trim()}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':newK.trim(),'X-Bin-Versioning':'false'},body:JSON.stringify(payload)})
+      .then(r=>{if(r.ok)alert('✓ Shared storage configured! Share your Bin ID and API key with your team. They open the dashboard and click "Enable shared storage" to connect.');else alert('Could not connect. Check your Bin ID and API key at jsonbin.io.');})
+      .catch(()=>alert('Could not connect to jsonbin.io. Check your internet connection.'));
+  }else{alert('Shared storage configured. Upload files to save them to the shared store.');}
+}
+
 function updateStatus(){
   const labels={ccr:'CCR',events25:'2025 Events',events26:'2026 Events'};
   document.getElementById('statusBar').innerHTML=['ccr','events25','events26'].map(t=>{
@@ -371,7 +438,7 @@ function updateStatus(){
   }).join('');
   const metas=['ccr','events25','events26'].map(t=>{try{return JSON.parse(localStorage.getItem('ascv5_'+t+'_m')||'null');}catch(e){return null;}}).filter(Boolean);
   if(metas.length){const d=new Date(metas.map(m=>new Date(m.saved)).sort((a,b)=>b-a)[0]);
-  document.getElementById('storInfo').innerHTML=`Data saved in browser — last updated ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} &nbsp;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear saved data</span>`;
+  document.getElemestorInfo').innerHTML=`${localStorage.getItem('ascend_bin_id')?'Shared':'Local'} data — last updated ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} &nbsp;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">${localStorage.getItem('ascend_bin_id')?'Manage sharing':'Enable shared storage'}</span> &nbsp;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear</span>`;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear saved data</span>`;
   }else document.getElementById('storInfo').innerHTML='';
   if(metas.length>=2)document.getElementById('uploadZone').classList.add('loaded');
 }
@@ -565,20 +632,15 @@ function renderEvents(){
     const o=evOrg(r);
     const match=TARGETS.find(t=>o.toLowerCase().includes(t.name.toLowerCase().substring(0,7))||t.name.toLowerCase().includes(o.toLowerCase().substring(0,6)&&o.length>4?o.toLowerCase().substring(0,6):'XXXXXXX'));
     if(match){
-      if(!ta[match.name])ta[match.name]={people:[],events:new Set(),years:new Set()};
+      if(!ta[match.name])ta[match.name]={people:[],emails:[],events:new Set(),years:new Set()};
       const fn=`${getF(r,'First_Name','First Name')} ${getF(r,'Last_Name','Last Name')}`.trim();
-      if(fn&&!ta[match.name].people.includes(fn))ta[match.name].people.push(fn);
+      const evEm=String(getF(r,'Email','Email Address','email')||'').toLowerCase();
+      if(fn&&!ta[match.name].people.includes(fn)){ta[match.name].people.push(fn);if(evEm)ta[match.name].emails.push(evEm);}
       ta[match.name].events.add(evName(r));
       ta[match.name].years.add(evYear(r));
     }
   });
-  document.getElementById('tev-tbl').innerHTML=Object.keys(ta).length
-    ?`<table class="tbl"><thead><tr><th>Company</th><th>Year(s)</th><th>Events</th><th>People</th></tr></thead><tbody>${Object.entries(ta).map(([co,d])=>`<tr><td><strong>${co}</strong></td><td>${[...d.years].join(', ')}</td><td><span class="badge b-green">${d.events.size}</span></td><td style="font-size:10px">${d.people.slice(0,3).join(', ')}${d.people.length>3?` +${d.people.length-3}`:''}</td></tr>`).join('')}</tbody></table>`
-    :'<div class="empty" style="padding:1rem;font-size:11px">No target account attendees found in event data yet</div>';
-}
-
-// SPONSORSHIP
-function filterSponsors(f,el){SP_FILTER=f;document.querySelectorAll('#sp-filter .filter-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderSponsorTable();}
+  document.getElementById('tev-tbl').innerHTML='<div style="overflow-x:auto;max-height:420px;overflow-y:auto"><table class="tbl"><thead style="position:sticky;top:0;background:#F8F8F8"><tr><th>Company</th><th>Year(s)</th><th>Events</th><th>Attendees</th><th>Emails</th></tr></thead><tbody>'+TARGETS.map(t=>{const d=ta[t.name];if(d&&d.people.length>0){return`<tr><td><strong>${t.name}</strong></td><td>${[...d.years].join(', ')}</td><td style="font-size:10px">${[...d.events].join('; ')}</td><td style="font-size:10px">${d.people.join('; ')}</td><td style="font-size:10px;color:#E83402">${d.emails.join('; ')||'—'}</td></tr>`;}else{return`<tr style="opacity:.5"><td><strong>${t.name}</strong></td><td>—</td><td style="font-size:10px">No attendees yet</td><td>—</td><td style="font-size:10px;color:#E83402">${t.email||'—'}</td></tr>`;}}).join('')+'</tbody></table></div>nction filterSponsors(f,el){SP_FILTER=f;document.querySelectorAll('#sp-filter .filter-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderSponsorTable();}
 
 function renderSponsorTable(){
   let sp=SPONSORS;
@@ -610,8 +672,7 @@ function renderSponsorship(){
 }
 
 // PIPELINE
-function filterPipeline(f,el){PP_FILTER=f;document.querySelectorAll('#pp-filter .filter-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');if(document.getElementById('coverage-note'))document.getElementById('coverage-note').innerHTML='<strong style="color:#171B4B">Coverage rate explained:</strong> '+covered+' of 26 accounts have at least one data point — an active Ascend member at that company, a confirmed event attendee, or a named contact from our Sponsor Targets document. Coverage does not mean they are ready to sponsor. Tier 1 ('+tiers[1]+') have member + event data. Tier 2 ('+tiers[2]+') have one signal. Tier 3 ('+tiers[3]+') have a named contact but thin data. Tier 4 ('+tiers[4]+') are genuinely cold with no connection yet.';
-  renderPipelineTable();}
+function filterPipeline(f,el){PP_FILTER=f;document.querySelectorAll('#pp-filter .filter-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderPipelineTable();}
 
 function renderPipelineTable(){
   const am=activeMembers();const att=allAttended();
@@ -658,7 +719,7 @@ function renderPipeline(){
 }
 
 // INIT
-if(!restore())renderSummary();
+restore().then(loaded => { if(!loaded) renderSummary(); });
 </script>
 </body>
 </html>
