@@ -8,9 +8,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-:root{--red:#C0392B;--navy:#1A1A2E;--dark:#2C3E50;--teal:#0F6E56;--purple:#534AB7;
---gray:#7F8C8D;--bg:#F7F7F5;--surface:#FFFFFF;--border:#E8E6E0;--text:#1A1A2E;
---text2:#5F5E5A;--text3:#9C9A92;--green:#27500A;--amber:#633806;--blue:#0C447C;}
+:root{--red:#E83402;--navy:#171B4B;--dark:#171B4B;--teal:#E83402;--purple:#646787;
+--gray:#646787;--bg:#F2F2F2;--surface:#FFFFFF;--border:#D8D9E1;--text:#111111;
+--text2:#646787;--text3:#9C9A92;--green:#1B5E20;--amber:#A84A00;--blue:#171B4B;
+--tan:#FF9D65;--scarlet:#E83402;--penn:#171B4B;}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Nunito','Georgia',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
 .topbar{background:var(--navy);color:#fff;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:52px;border-bottom:3px solid #E83402}
@@ -48,7 +49,7 @@ body{font-family:'Nunito','Georgia',sans-serif;background:var(--bg);color:var(--
 .chart-title{font-size:13px;font-weight:600;font-family:'Playfair Display',serif;color:#171B4B;margin-bottom:2px}
 .chart-sub{font-size:10px;color:var(--text3);margin-bottom:8px}
 .cw{position:relative;width:100%}
-.sh{font-size:10px;font-weight:bold;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin:1rem 0 .5rem;font-family:monospace;display:flex;align-items:center;gap:8px}
+.sh{font-size:10px;font-weight:700;color:#171B4B;text-transform:uppercase;letter-spacing:.08em;margin:1rem 0 .5rem;font-family:monospace;display:flex;align-items:center;gap:8px}
 .sh::after{content:'';flex:1;height:1px;background:#FF9D65}
 .tbl{width:100%;border-collapse:collapse;font-size:11px}
 .tbl th{text-align:left;color:var(--text3);font-weight:bold;padding:5px 7px;border-bottom:1px solid var(--border);font-family:monospace;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
@@ -75,8 +76,8 @@ body{font-family:'Nunito','Georgia',sans-serif;background:var(--bg);color:var(--
 .tier-def{background:var(--surface);border:0.5px solid var(--border);border-radius:9px;padding:12px;margin-bottom:1rem}
 .tier-row{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:0.5px solid var(--border)}
 .tier-row:last-child{border-bottom:none}
-.tier-badge-col{width:130px;flex-shrink:0;padding-top:2px}
-.tier-text{font-size:11px;color:var(--text2);line-height:1.5;flex:1}
+.tier-badge-col{min-width:130px;width:130px;flex-shrink:0;padding-top:2px}
+.tier-text{font-size:11px;color:var(--text2);line-height:1.5;flex:1;min-width:0}
 .filter-bar{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
 .filter-btn{font-size:10px;padding:3px 10px;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-family:monospace;text-transform:uppercase;letter-spacing:.03em}
 .filter-btn.active{background:#171B4B;color:#fff;border-color:#171B4B}
@@ -191,7 +192,7 @@ body{font-family:'Nunito','Georgia',sans-serif;background:var(--bg);color:var(--
     <div id="sp-m" class="metrics"></div>
     <div class="sh">Tier definitions</div>
     <div class="tier-def">
-      <div class="tier-row"><div class="tier-badge-col"><span class="badge b-jade">Jade — $7,000</span></div><div class="tier-text">Top chapter tier. Includes event tickets, IAG tickets, up to 15 memberships, and branding. Current Jade sponsors: JPMC ($7K), Robert Half & Protiviti ($7K). PwC is $4K Jade — a negotiated rate below standard tier.</div></div>
+      <div class="tier-row"><div class="tier-badge-col"><span class="badge b-jade">Jade — $7,000</span></div><div class="tier-text">Top chapter tier. Includes event tickets, IAG tickets, up to 15 memberships, and branding. Current Jade sponsors: JPMC ($7K), Robert Half & Protiviti ($7K). PwC is $4K Jade.</div></div>
       <div class="tier-row"><div class="tier-badge-col"><span class="badge b-gray">Silver — $5,000</span></div><div class="tier-text">Strong chapter partner. Includes 5–10 event tickets, 8–10 IAG tickets, option to host one event, branding. Current: RSM, Crowe, Sargent & Lundy, CIBC, Encova.</div></div>
       <div class="tier-row"><div class="tier-badge-col"><span class="badge b-bronze">Bronze — $3,000</span></div><div class="tier-text">Core partner. Includes 5–8 event tickets, IAG access, branding. Current: Hyatt, Nationwide, Mars Wrigley, Wipfli, Riveron.</div></div>
       <div class="tier-row"><div class="tier-badge-col"><span class="badge b-blue">Supporter — $1–2.5K</span></div><div class="tier-text">Mission-aligned contribution. Variable benefits. Current: Ingredion ($2.5K), KraftHeinz ($1.5K), West Monroe ($1K).</div></div>
@@ -527,10 +528,10 @@ function renderMembership(){
     ?`<table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Employer</th><th>Expires</th></tr></thead><tbody>${exp.slice(0,25).map(r=>`<tr><td>${getF(r,'First_Name','First Name')} ${getF(r,'Last_Name','Last Name')}</td><td style="color:var(--blue);font-size:10px">${memEmail(r)}</td><td>${memEmp(r)}</td><td><span class="badge b-amber">${memExp(r)}</span></td></tr>`).join('')}</tbody></table>`
     :'<div class="empty">No members expiring within 60 days</div>';
   if(exp.length>0&&document.getElementById('email-draft-zone')){
-    const emailText=`Subject: Your Ascend Midwest membership is expiring soon\n\nHi [First Name],\n\nWe wanted to reach out because your Ascend Midwest membership is expiring within the next 60 days.\n\nAs a valued member of our Pan-Asian professional community, we hope you will renew and continue to be part of everything Ascend Midwest has planned for 2026 — including professional development events, our IAG program, and expanded corporate partnership opportunities.\n\nRenewing is quick and easy at ascendleadership.org.\n\nIf you have any questions, please do not hesitate to reach out.\n\nWarm regards,\n[Your Name]\nAscend Midwest Leadership Team`;
-    document.getElementById('email-draft-zone').innerHTML='<div style="background:#171B4B;border-radius:10px;padding:14px 16px"><div style="font-family:Playfair Display,serif;font-size:13px;color:#FF9D65;margin-bottom:8px">Draft renewal email — '+exp.length+' members expiring within 60 days</div><div id="email-body" style="font-family:Nunito,sans-serif;font-size:11px;line-height:1.7;white-space:pre-wrap;color:rgba(255,255,255,.85)">'+emailText+'</div><button onclick="navigator.clipboard.writeText(document.getElementById(\"email-body\").textContent).then(()=>this.textContent=\"Copied!\")" style="margin-top:10px;padding:6px 14px;background:#E83402;color:white;border:none;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:.05em">Copy email draft</button></div>';
-  }
-}
+    const expEmails=exp.filter(r=>memEmail(r)).map(r=>memEmail(r)).join('; ');
+    const emailDraft='Subject: Your Ascend Midwest membership is expiring soon\n\nHi [First Name],\n\nYour Ascend Midwest membership is expiring within the next 60 days. We hope you will renew and continue to be part of our community.\n\nRenewing is quick at ascendleadership.org.\n\nWarm regards,\n[Your Name]\nAscend Midwest Leadership Team';
+    document.getElementById('email-draft-zone').innerHTML='<div style="background:#171B4B;border-radius:10px;padding:14px 16px;margin-top:10px"><div style="font-family:Playfair Display,serif;font-size:14px;color:#FF9D65;margin-bottom:10px;font-weight:600">'+exp.length+' members expiring within 60 days</div><div style="font-size:11px;color:rgba(255,255,255,.6);margin-bottom:10px;font-family:Nunito,sans-serif;line-height:1.5"><strong style="color:#FF9D65">Member emails:</strong><br><span id="exp-emails" style="color:rgba(255,255,255,.75);word-break:break-all">'+expEmails+'</span></div><div id="email-body" style="font-family:Nunito,sans-serif;font-size:11px;line-height:1.8;white-space:pre-wrap;color:rgba(255,255,255,.85);background:rgba(255,255,255,.06);padding:12px;border-radius:6px;margin-bottom:10px">'+emailDraft+'</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="navigator.clipboard.writeText(document.getElementById(\'email-body\').textContent).then(()=>this.textContent=\'Copied!\')" style="padding:6px 14px;background:#E83402;color:white;border:none;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;font-family:Nunito,sans-serif;text-transform:uppercase;letter-spacing:.05em">Copy draft</button><button onclick="navigator.clipboard.writeText(document.getElementById(\'exp-emails\').textContent).then(()=>this.textContent=\'Copied!\')" style="padding:6px 14px;background:rgba(255,255,255,.12);color:white;border:none;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;font-family:Nunito,sans-serif;text-transform:uppercase;letter-spacing:.05em">Copy emails only</button></div></div>';
+  }}
 
 // EVENTS
 function setEvYear(yr,el){EV_YEAR=yr;document.querySelectorAll('#ev-year-filter .filter-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderEvents();}
@@ -582,7 +583,7 @@ function filterSponsors(f,el){SP_FILTER=f;document.querySelectorAll('#sp-filter 
 function renderSponsorTable(){
   let sp=SPONSORS;
   if(SP_FILTER!=='all'&&SP_FILTER!=='urgent')sp=sp.filter(s=>s.tier===SP_FILTER);
-  if(SP_FILTER==='urgent')sp=sp.filter(s=>s.days<=60||s.paid!=='Paid');
+  if(SP_FILTER==='urgent')sp=sp.filter(s=>s.days<=90||s.paid!=='Paid');
   document.getElementById('sp-tbl').innerHTML=`<table class="tbl"><thead><tr><th>Sponsor</th><th>Tier</th><th>Contracted</th><th>Expires</th><th>Days left</th><th>Payment</th><th>Value delivered</th><th>Delta</th><th>Contact</th></tr></thead><tbody>${sp.map(s=>{const delta=s.value>0?s.value-s.amount:null;return`<tr><td><strong>${s.name}</strong></td><td>${tbadge(s.tier)}</td><td>$${s.amount.toLocaleString()}</td><td>${s.expires}</td><td><span class="badge ${s.days<=30?'b-red':s.days<=60?'b-amber':'b-blue'}">${s.days}d</span></td><td><span class="badge ${s.paid==='Paid'?'b-green':'b-red'}">${s.paid}</span></td><td>${s.value>0?'$'+s.value.toLocaleString():'—'}</td><td>${delta!==null?`<span class="badge ${delta>=0?'b-amber':'b-red'}">${delta>=0?'+':''}\$${delta.toLocaleString()}</span>`:'—'}</td><td style="font-size:10px;color:var(--blue)">${s.contact}</td></tr>`;}).join('')}</tbody></table>
   <p style="font-size:10px;color:var(--text3);margin-top:6px;padding:0 4px">Delta = value delivered minus contracted amount. Positive = over-delivering benefits relative to sponsorship paid. Large positive numbers (West Monroe +$8,898) indicate we should negotiate a higher tier at renewal.</p>`;
 }
@@ -614,10 +615,10 @@ function filterPipeline(f,el){PP_FILTER=f;document.querySelectorAll('#pp-filter 
 
 function renderPipelineTable(){
   const am=activeMembers();const att=allAttended();
-  const mByT={},aByT={},pByT={};
-  TARGETS.forEach(t=>{mByT[t.name]=0;aByT[t.name]=0;pByT[t.name]=[];});
+  const mByT={},aByT={},pByT={},eByT={};
+  TARGETS.forEach(t=>{mByT[t.name]=0;aByT[t.name]=0;pByT[t.name]=[];eByT[t.name]=[];});
   am.forEach(r=>{const e=memEmp(r);const match=TARGETS.find(t=>e.toLowerCase().includes(t.name.toLowerCase().substring(0,7)));if(match)mByT[match.name]++;});
-  att.forEach(r=>{const o=evOrg(r);const match=TARGETS.find(t=>o.toLowerCase().includes(t.name.toLowerCase().substring(0,7)));if(match){aByT[match.name]++;const fn=`${getF(r,'First_Name','First Name')} ${getF(r,'Last_Name','Last Name')}`.trim();if(fn&&!pByT[match.name].includes(fn))pByT[match.name].push(fn);}});
+  att.forEach(r=>{const o=evOrg(r);const match=TARGETS.find(t=>o.toLowerCase().includes(t.name.toLowerCase().substring(0,7)));if(match){aByT[match.name]++;const fn=`${getF(r,'First_Name','First Name')} ${getF(r,'Last_Name','Last Name')}`.trim();if(fn&&!pByT[match.name].includes(fn)){pByT[match.name].push(fn);const em=String(getF(r,'Email','Email Address','email')||'').toLowerCase();if(em)eByT[match.name].push(em);}}});
 
   const tierOf=t=>{const m=mByT[t.name];const a=aByT[t.name];const hc=t.contact||t.notes;if(m>=1&&a>=2)return'Tier 1';if(m>=1||a>=2)return'Tier 2';if(hc||m>0||a>0)return'Tier 3';return'Tier 4';};
   const nextStep=tier=>({
@@ -631,7 +632,7 @@ function renderPipelineTable(){
   if(PP_FILTER!=='all'&&PP_FILTER!=='has-contact')targets=targets.filter(t=>tierOf(t)===PP_FILTER);
   if(PP_FILTER==='has-contact')targets=targets.filter(t=>t.contact);
 
-  document.getElementById('pp-tbl').innerHTML=`<table class="tbl"><thead><tr><th>F-Rank</th><th>Company</th><th>Industry</th><th>Tier</th><th>Active members</th><th>Event att.</th><th>Known contacts</th><th>Notes</th><th>Next step</th></tr></thead><tbody>${targets.map(t=>{const tier=tierOf(t);return`<tr><td style="font-size:10px;color:var(--text3)">${t.rank}</td><td><strong>${t.name}</strong></td><td style="font-size:10px;color:var(--text2)">${t.ind}</td><td>${pbadge(tier)}</td><td>${mByT[t.name]||'—'}</td><td>${aByT[t.name]||'—'}</td><td style="font-size:10px">${(pByT[t.name]||[]).slice(0,2).map((n,i)=>n+((eByT[t.name]||[])[i]?' ('+(eByT[t.name]||[])[i]+')':'')).join('; ')||'—'}</td><td style="font-size:10px;color:#E83402">${t.contact||'—'}</td><td style="font-size:10px;color:var(--text2);max-width:120px">${t.notes||''}</td><td style="font-size:10px;color:var(--text2)">${nextStep(tier)}</td></tr>`;}).join('')}</tbody></table>`;
+  document.getElementById('pp-tbl').innerHTML=`<table class="tbl"><thead><tr><th>F-Rank</th><th>Company</th><th>Industry</th><th>Tier</th><th>Members</th><th>Att.</th><th>Event attendees + emails</th><th>Named contacts</th><th>Notes</th><th>Next step</th></tr></thead><tbody>${targets.map(t=>{const tier=tierOf(t);return`<tr><td style="font-size:10px;color:var(--text3)">${t.rank}</td><td><strong>${t.name}</strong></td><td style="font-size:10px;color:var(--text2)">${t.ind}</td><td>${pbadge(tier)}</td><td>${mByT[t.name]||'—'}</td><td>${aByT[t.name]||'—'}</td><td style="font-size:10px">${(pByT[t.name]||[]).slice(0,2).map((n,i)=>n+((eByT[t.name]||[])[i]?' ('+(eByT[t.name]||[])[i]+')':'')).join('; ')||'—'}</td><td style="font-size:10px;color:#E83402">${t.contact||'—'}</td><td style="font-size:10px;color:var(--text2);max-width:120px">${t.notes||''}</td><td style="font-size:10px;color:var(--text2)">${nextStep(tier)}</td></tr>`;}).join('')}</tbody></table>`;
 }
 
 function renderPipeline(){
