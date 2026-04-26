@@ -2,715 +2,682 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Ascend Midwest — Corp Dev Intelligence</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-:root {
-  --red: #C0392B; --navy: #1A1A2E; --dark: #2C3E50;
-  --teal: #0F6E56; --purple: #534AB7; --gray: #7F8C8D;
-  --bg: #F7F7F5; --surface: #FFFFFF; --border: #E8E6E0;
-  --text: #1A1A2E; --text2: #5F5E5A; --text3: #9C9A92;
-  --green: #27500A; --amber: #633806; --blue: #0C447C;
-  --green-bg: #EAF3DE; --amber-bg: #FAEEDA; --blue-bg: #E6F1FB;
-  --red-bg: #FCEBEB; --teal-bg: #E1F5EE; --purple-bg: #EEEDFE;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Georgia', serif; background: var(--bg); color: var(--text); }
-.topbar { background: var(--navy); color: #fff; padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 52px; }
-.topbar-left { display: flex; align-items: center; gap: 16px; }
-.topbar-logo { font-size: 18px; font-weight: bold; letter-spacing: -.5px; color: #fff; }
-.topbar-logo span { color: var(--red); }
-.topbar-sub { font-size: 11px; color: rgba(255,255,255,.5); font-family: 'Courier New', monospace; letter-spacing: .05em; }
-.topbar-date { font-size: 11px; color: rgba(255,255,255,.4); font-family: 'Courier New', monospace; }
-.nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; display: flex; gap: 0; }
-.nav-tab { padding: 12px 18px; font-size: 12px; font-weight: bold; letter-spacing: .04em; color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; font-family: 'Courier New', monospace; text-transform: uppercase; }
-.nav-tab.active { color: var(--red); border-bottom-color: var(--red); }
-.nav-tab:hover:not(.active) { color: var(--text); }
-.main { padding: 2rem; max-width: 1400px; margin: 0 auto; }
-.upload-zone { background: var(--surface); border: 1.5px dashed var(--border); border-radius: 12px; padding: 3rem 2rem; text-align: center; margin-bottom: 2rem; transition: border-color .2s; }
-.upload-zone.over { border-color: var(--red); background: var(--red-bg); }
-.upload-zone.loaded { border-style: solid; border-color: var(--teal); background: var(--teal-bg); }
-.upload-title { font-size: 20px; font-weight: bold; color: var(--text); margin-bottom: 8px; }
-.upload-sub { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
-.file-inputs { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-.file-btn { position: relative; }
-.file-btn input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-.file-btn label { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-size: 12px; font-weight: bold; color: var(--text2); cursor: pointer; transition: all .15s; font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: .04em; }
-.file-btn.loaded label { border-color: var(--teal); color: var(--teal); background: var(--teal-bg); }
-.file-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
-.file-btn.loaded .file-dot { background: var(--teal); }
-.status-bar { display: flex; gap: 8px; justify-content: center; margin-top: 16px; flex-wrap: wrap; }
-.status-pill { font-size: 11px; padding: 3px 10px; border-radius: 20px; font-family: 'Courier New', monospace; }
-.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
-.metric { background: var(--surface); border: 0.5px solid var(--border); border-radius: 10px; padding: 16px; }
-.metric-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; font-family: 'Courier New', monospace; }
-.metric-value { font-size: 28px; font-weight: bold; color: var(--text); line-height: 1; }
-.metric-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
-.metric.danger .metric-value { color: var(--red); }
-.metric.success .metric-value { color: var(--teal); }
-.metric.warn .metric-value { color: #B7770D; }
-.charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 1.5rem; }
-.charts.wide { grid-template-columns: 1fr; }
-.charts.three { grid-template-columns: 1fr 1fr 1fr; }
-.chart-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 10px; padding: 16px; }
-.chart-title { font-size: 12px; font-weight: bold; color: var(--text); margin-bottom: 4px; font-family: 'Courier New', monospace; text-transform: uppercase; letter-spacing: .04em; }
-.chart-sub { font-size: 11px; color: var(--text3); margin-bottom: 12px; }
-.chart-wrap { position: relative; width: 100%; }
-.section-head { font-size: 11px; font-weight: bold; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 12px; font-family: 'Courier New', monospace; display: flex; align-items: center; gap: 8px; }
-.section-head::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-.alert-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.alert-table th { text-align: left; color: var(--text3); font-weight: bold; padding: 6px 8px; border-bottom: 1px solid var(--border); font-family: 'Courier New', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
-.alert-table td { padding: 6px 8px; border-bottom: 0.5px solid var(--border); color: var(--text); vertical-align: middle; }
-.alert-table tr:last-child td { border-bottom: none; }
-.badge { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: bold; font-family: 'Courier New', monospace; }
-.badge-red { background: var(--red-bg); color: var(--red); }
-.badge-green { background: var(--green-bg); color: var(--green); }
-.badge-amber { background: var(--amber-bg); color: var(--amber); }
-.badge-blue { background: var(--blue-bg); color: var(--blue); }
-.badge-gray { background: #F1EFE8; color: #5F5E5A; }
-.empty { text-align: center; padding: 3rem; color: var(--text3); font-size: 14px; }
-.legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; font-size: 11px; color: var(--text2); }
-.legend-item { display: flex; align-items: center; gap: 5px; }
-.legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-.page { display: none; }
-.page.active { display: block; }
+:root{--red:#C0392B;--navy:#1A1A2E;--dark:#2C3E50;--teal:#0F6E56;--purple:#534AB7;
+--gray:#7F8C8D;--bg:#F7F7F5;--surface:#FFFFFF;--border:#E8E6E0;--text:#1A1A2E;
+--text2:#5F5E5A;--text3:#9C9A92;--green:#27500A;--amber:#633806;--blue:#0C447C;
+--green-bg:#EAF3DE;--amber-bg:#FAEEDA;--blue-bg:#E6F1FB;--red-bg:#FCEBEB;
+--teal-bg:#E1F5EE;--purple-bg:#EEEDFE;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Georgia',serif;background:var(--bg);color:var(--text);font-size:14px}
+.topbar{background:var(--navy);color:#fff;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:48px}
+.logo{font-size:16px;font-weight:bold;color:#fff}.logo span{color:var(--red)}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.topbar-date{font-size:11px;color:rgba(255,255,255,.4);font-family:monospace}
+.nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 1.5rem;display:flex;gap:0;overflow-x:auto}
+.nav-tab{padding:11px 14px;font-size:11px;font-weight:bold;letter-spacing:.04em;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;font-family:monospace;text-transform:uppercase}
+.nav-tab.active{color:var(--red);border-bottom-color:var(--red)}
+.main{padding:1.5rem;max-width:1400px;margin:0 auto}
+.upload-zone{background:var(--surface);border:1.5px dashed var(--border);border-radius:10px;padding:1.5rem;text-align:center;margin-bottom:1.5rem}
+.upload-zone.loaded{border-style:solid;border-color:var(--teal);background:var(--teal-bg)}
+.upload-title{font-size:16px;font-weight:bold;margin-bottom:4px}
+.upload-sub{font-size:12px;color:var(--text2);margin-bottom:14px}
+.file-inputs{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.file-btn{position:relative}
+.file-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.file-btn label{display:flex;align-items:center;gap:6px;padding:7px 13px;background:var(--surface);border:1px solid var(--border);border-radius:7px;font-size:11px;font-weight:bold;color:var(--text2);cursor:pointer;font-family:monospace;text-transform:uppercase;letter-spacing:.04em}
+.file-btn.loaded label{border-color:var(--teal);color:var(--teal);background:var(--teal-bg)}
+.file-dot{width:7px;height:7px;border-radius:50%;background:var(--border)}
+.file-btn.loaded .file-dot{background:var(--teal)}
+.status-bar{display:flex;gap:6px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+.status-pill{font-size:10px;padding:2px 8px;border-radius:12px;font-family:monospace}
+.storage-info{font-size:10px;color:var(--teal);margin-top:6px;text-align:center;font-family:monospace}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.25rem}
+.metric{background:var(--surface);border:0.5px solid var(--border);border-radius:9px;padding:14px}
+.metric-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;font-family:monospace}
+.metric-value{font-size:26px;font-weight:bold;line-height:1}
+.metric-sub{font-size:10px;color:var(--text3);margin-top:3px}
+.metric.danger .metric-value{color:var(--red)}
+.metric.success .metric-value{color:var(--teal)}
+.metric.warn .metric-value{color:#B7770D}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:1.25rem}
+.charts.wide{grid-template-columns:1fr}
+.charts.three{grid-template-columns:1fr 1fr 1fr}
+.chart-card{background:var(--surface);border:0.5px solid var(--border);border-radius:9px;padding:14px}
+.chart-title{font-size:11px;font-weight:bold;font-family:monospace;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.chart-sub{font-size:10px;color:var(--text3);margin-bottom:10px}
+.chart-wrap{position:relative;width:100%}
+.section-head{font-size:10px;font-weight:bold;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin:1rem 0 .6rem;font-family:monospace;display:flex;align-items:center;gap:8px}
+.section-head::after{content:'';flex:1;height:1px;background:var(--border)}
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{text-align:left;color:var(--text3);font-weight:bold;padding:5px 7px;border-bottom:1px solid var(--border);font-family:monospace;font-size:10px;text-transform:uppercase;letter-spacing:.04em}
+.tbl td{padding:5px 7px;border-bottom:0.5px solid var(--border);color:var(--text);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#fafaf8}
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:bold;font-family:monospace;white-space:nowrap}
+.b-red{background:var(--red-bg);color:var(--red)}
+.b-green{background:var(--green-bg);color:var(--green)}
+.b-amber{background:var(--amber-bg);color:var(--amber)}
+.b-blue{background:var(--blue-bg);color:var(--blue)}
+.b-gray{background:#F1EFE8;color:#5F5E5A}
+.b-purple{background:var(--purple-bg);color:var(--purple)}
+.empty{text-align:center;padding:2rem;color:var(--text3);font-size:13px}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;font-size:11px;color:var(--text2)}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.page{display:none}
+.page.active{display:block}
+.tier-def{background:var(--surface);border:0.5px solid var(--border);border-radius:9px;padding:12px 14px;margin-bottom:1rem}
+.tier-row{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:0.5px solid var(--border)}
+.tier-row:last-child{border-bottom:none}
+.tier-badge{width:120px;flex-shrink:0}
+.tier-text{font-size:11px;color:var(--text2);line-height:1.5;flex:1}
+.drill-overlay{display:none;position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(26,26,46,.7);z-index:100;padding:2rem;overflow-y:auto}
+.drill-card{background:var(--surface);border-radius:12px;padding:1.5rem;max-width:800px;margin:0 auto}
+.drill-close{float:right;cursor:pointer;font-size:20px;color:var(--text3);line-height:1}
 </style>
 </head>
 <body>
-
 <div class="topbar">
-  <div class="topbar-left">
-    <div class="topbar-logo">Ascend <span>Midwest</span></div>
-    <div class="topbar-sub">Corp Dev Intelligence Dashboard</div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="logo">Ascend <span>Midwest</span></div>
+    <div style="font-size:11px;color:rgba(255,255,255,.4);font-family:monospace">Corp Dev Intelligence</div>
   </div>
-  <div class="topbar-date" id="topbar-date"></div>
+  <div class="topbar-right">
+    <div class="topbar-date" id="topbar-date"></div>
+  </div>
 </div>
 
 <div class="nav">
-  <div class="nav-tab active" onclick="showPage('summary')">Summary</div>
-  <div class="nav-tab" onclick="showPage('membership')">Membership</div>
-  <div class="nav-tab" onclick="showPage('events')">Events</div>
-  <div class="nav-tab" onclick="showPage('sponsorship')">Sponsorship</div>
-  <div class="nav-tab" onclick="showPage('pipeline')">Pipeline</div>
+  <div class="nav-tab active" onclick="showPage('summary',this)">Summary</div>
+  <div class="nav-tab" onclick="showPage('membership',this)">Membership</div>
+  <div class="nav-tab" onclick="showPage('events',this)">Events</div>
+  <div class="nav-tab" onclick="showPage('sponsorship',this)">Sponsorship</div>
+  <div class="nav-tab" onclick="showPage('pipeline',this)">Prospect Pipeline</div>
 </div>
 
 <div class="main">
-
   <div class="upload-zone" id="uploadZone">
-    <div class="upload-title">Drop your files to refresh the dashboard</div>
-    <div class="upload-sub">Upload the three source files — dashboard updates instantly. No data leaves your browser.</div>
+    <div class="upload-title">Drop files to refresh the dashboard</div>
+    <div class="upload-sub">CCR membership export · Corp Dev reference · Check-In App master export · All data stays in your browser</div>
     <div class="file-inputs">
-      <div class="file-btn" id="btn-ccr">
-        <input type="file" accept=".xlsx,.csv" onchange="loadFile('ccr', this)">
-        <label><div class="file-dot"></div>CCR membership export</label>
-      </div>
-      <div class="file-btn" id="btn-corpdev">
-        <input type="file" accept=".xlsx,.csv" onchange="loadFile('corpdev', this)">
-        <label><div class="file-dot"></div>Corp Dev reference</label>
-      </div>
-      <div class="file-btn" id="btn-events">
-        <input type="file" accept=".xlsx,.csv" onchange="loadFile('events', this)">
-        <label><div class="file-dot"></div>Event registration export</label>
-      </div>
+      <div class="file-btn" id="btn-ccr"><input type="file" accept=".xlsx,.csv" onchange="loadFile('ccr',this)"><label><div class="file-dot"></div>CCR membership export</label></div>
+      <div class="file-btn" id="btn-corpdev"><input type="file" accept=".xlsx,.csv" onchange="loadFile('corpdev',this)"><label><div class="file-dot"></div>Corp Dev reference</label></div>
+      <div class="file-btn" id="btn-events"><input type="file" accept=".xlsx,.csv" onchange="loadFile('events',this)"><label><div class="file-dot"></div>Check-In App export</label></div>
     </div>
     <div class="status-bar" id="statusBar"></div>
-  <div id="storageInfo" style="font-size:10px;color:#0F6E56;margin-top:8px;font-family:'Courier New',monospace"></div>
+    <div class="storage-info" id="storageInfo"></div>
   </div>
 
   <div class="page active" id="page-summary">
-    <div id="summary-metrics" class="metrics"></div>
-    <div class="section-head">Renewals requiring immediate action</div>
-    <div class="chart-card" style="margin-bottom:16px"><div id="renewals-table"></div></div>
+    <div id="sum-metrics" class="metrics"></div>
     <div class="charts">
       <div class="chart-card">
-        <div class="chart-title">Revenue by sponsor tier</div>
-        <div class="chart-sub">Contracted amounts for 2026</div>
-        <div class="chart-wrap" style="height:220px"><canvas id="chartTier" role="img" aria-label="Revenue by sponsor tier"></canvas></div>
+        <div class="chart-title">Sponsorship revenue by tier</div>
+        <div class="chart-sub">Click a segment to see sponsor details</div>
+        <div class="legend" id="tier-legend"></div>
+        <div class="chart-wrap" style="height:200px"><canvas id="cTier" role="img" aria-label="Revenue by tier"></canvas></div>
       </div>
       <div class="chart-card">
         <div class="chart-title">Pipeline engagement tiers</div>
-        <div class="chart-sub">26 official target accounts</div>
-        <div class="chart-wrap" style="height:220px"><canvas id="chartTiers" role="img" aria-label="Pipeline engagement tiers"></canvas></div>
+        <div class="chart-sub">26 official target accounts · click to drill in</div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot" style="background:#27500A"></span>Tier 1</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#B7770D"></span>Tier 2</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#0C447C"></span>Tier 3</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#9C9A92"></span>Tier 4</span>
+        </div>
+        <div class="chart-wrap" style="height:200px"><canvas id="cPTiers" role="img" aria-label="Pipeline tiers"></canvas></div>
       </div>
     </div>
+    <div class="section-head">Urgent actions</div>
+    <div class="chart-card" style="margin-bottom:1rem"><div id="urgent-table"></div></div>
+    <div class="section-head">Value delivered vs. contracted — all sponsors</div>
+    <div class="chart-card"><div class="chart-wrap" style="height:280px"><canvas id="cValue" role="img" aria-label="Value vs contracted"></canvas></div></div>
   </div>
 
   <div class="page" id="page-membership">
-    <div id="member-metrics" class="metrics"></div>
+    <div id="mem-metrics" class="metrics"></div>
     <div class="charts">
       <div class="chart-card">
         <div class="chart-title">Member type split</div>
         <div class="chart-sub">Corporate-sponsored vs. self-paid</div>
-        <div id="member-split-legend" class="legend"></div>
-        <div class="chart-wrap" style="height:200px"><canvas id="chartMemberSplit" role="img" aria-label="Member type split donut chart"></canvas></div>
+        <div class="legend" id="split-legend"></div>
+        <div class="chart-wrap" style="height:200px"><canvas id="cSplit" role="img" aria-label="Member type split"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title">Top 15 employers</div>
-        <div class="chart-sub">Active members by canonical employer</div>
-        <div class="chart-wrap" style="height:350px"><canvas id="chartEmployers" role="img" aria-label="Top employers bar chart"></canvas></div>
+        <div class="chart-title">Top 15 employers (active members)</div>
+        <div class="chart-sub">Red bars = target prospect accounts</div>
+        <div class="chart-wrap" style="height:340px"><canvas id="cEmps" role="img" aria-label="Top employers"></canvas></div>
       </div>
     </div>
-    <div class="section-head">Corp ticket buyers not yet chapter sponsors</div>
-    <div class="chart-card" style="margin-bottom:16px"><div id="corp-ticket-table"></div></div>
+    <div class="section-head">Corporate ticket buyers not yet chapter sponsors — highest-value warm prospects</div>
+    <div class="chart-card" style="margin-bottom:1rem"><div id="corp-ticket-tbl"></div></div>
     <div class="section-head">Members expiring within 60 days</div>
-    <div class="chart-card"><div id="expiring-table"></div></div>
+    <div class="chart-card"><div id="expiring-tbl"></div></div>
   </div>
 
   <div class="page" id="page-events">
-    <div id="event-metrics" class="metrics"></div>
+    <div id="ev-metrics" class="metrics"></div>
     <div class="charts wide">
       <div class="chart-card">
-        <div class="chart-title">Attendance per event (all 2025 events)</div>
-        <div class="chart-sub">Registered vs. confirmed attendees</div>
-        <div class="chart-wrap" style="height:300px"><canvas id="chartEvents" role="img" aria-label="Event attendance bar chart"></canvas></div>
+        <div class="chart-title">Attendance per event</div>
+        <div class="chart-sub">Registered vs. checked in · all events in dataset</div>
+        <div class="chart-wrap" style="height:280px"><canvas id="cEvAtt" role="img" aria-label="Event attendance"></canvas></div>
       </div>
     </div>
     <div class="charts">
       <div class="chart-card">
         <div class="chart-title">Top organizations at events</div>
-        <div class="chart-sub">Confirmed attendees by company</div>
-        <div class="chart-wrap" style="height:300px"><canvas id="chartEventOrgs" role="img" aria-label="Top organizations at events"></canvas></div>
+        <div class="chart-sub">Red = target account · all checked-in attendees</div>
+        <div class="chart-wrap" style="height:300px"><canvas id="cEvOrgs" role="img" aria-label="Top orgs at events"></canvas></div>
       </div>
       <div class="chart-card">
         <div class="chart-title">Target accounts at events</div>
-        <div class="chart-sub">Prospect companies with 2025 attendance</div>
-        <div id="target-events-table"></div>
+        <div class="chart-sub">Prospect companies with confirmed attendance</div>
+        <div id="target-ev-tbl"></div>
       </div>
     </div>
   </div>
 
   <div class="page" id="page-sponsorship">
-    <div id="sponsor-metrics" class="metrics"></div>
+    <div id="sp-metrics" class="metrics"></div>
+    <div class="section-head">Tier definitions</div>
+    <div class="tier-def">
+      <div class="tier-row"><div class="tier-badge"><span class="badge b-green">Gold — $10,000</span></div><div class="tier-text">Top-tier partner. Includes IAG naming rights, executive speaking opportunity, maximum event tickets, maximum memberships, full branding across all channels.</div></div>
+      <div class="tier-row"><div class="tier-badge"><span class="badge b-purple">Jade — $4,000–$7,000</span></div><div class="tier-text">Mid-premium partner. Includes event tickets, IAG tickets, memberships (up to 15), and branding. Current Jade sponsors: JPMC ($7K), Robert Half & Protiviti ($7K), PwC ($4K).</div></div>
+      <div class="tier-row"><div class="tier-badge"><span class="badge b-amber">Silver — $5,000</span></div><div class="tier-text">Strong chapter partner. Includes 5–10 event tickets, 8–10 IAG tickets, option to host one event, branding. Current: RSM, Crowe, Sargent & Lundy, CIBC, Encova.</div></div>
+      <div class="tier-row"><div class="tier-badge"><span class="badge" style="background:#FDEBD0;color:#A04000">Bronze — $3,000</span></div><div class="tier-text">Core partner. Includes 5–8 event tickets, IAG access, branding. Current: Hyatt, Nationwide, Mars Wrigley, Wipfli, Riveron.</div></div>
+      <div class="tier-row"><div class="tier-badge"><span class="badge b-blue">Supporter — $1,000–$2,500</span></div><div class="tier-text">Mission-aligned contribution. Variable benefits. Current: Ingredion, KraftHeinz, West Monroe.</div></div>
+    </div>
+    <div class="section-head">Full sponsor portfolio — click a row to see details</div>
+    <div class="chart-card" style="margin-bottom:1rem"><div id="sp-tbl"></div></div>
     <div class="charts">
       <div class="chart-card">
         <div class="chart-title">Value delivered vs. contracted</div>
-        <div class="chart-sub">Estimated benefit value vs. sponsorship amount</div>
-        <div class="chart-wrap" style="height:320px"><canvas id="chartValue" role="img" aria-label="Value delivered vs contracted per sponsor"></canvas></div>
+        <div class="chart-sub">Should be roughly equal — large gaps flag imbalance</div>
+        <div class="chart-wrap" style="height:300px"><canvas id="cSpValue" role="img" aria-label="Value vs contracted"></canvas></div>
       </div>
       <div class="chart-card">
-        <div class="chart-title">Sponsor portfolio</div>
-        <div class="chart-sub">All 16 sponsors with status</div>
-        <div id="sponsor-table"></div>
+        <div class="chart-title">Revenue by tier</div>
+        <div class="chart-sub">Contracted amounts · click to see sponsors in that tier</div>
+        <div class="chart-wrap" style="height:300px"><canvas id="cSpTier" role="img" aria-label="Revenue by tier"></canvas></div>
       </div>
     </div>
   </div>
 
   <div class="page" id="page-pipeline">
-    <div id="pipeline-metrics" class="metrics"></div>
-    <div class="charts">
-      <div class="chart-card">
-        <div class="chart-title">Engagement tier breakdown</div>
-        <div class="chart-sub">26 official target accounts</div>
-        <div class="legend">
-          <span class="legend-item"><span class="legend-dot" style="background:#27500A"></span>Tier 1 — High</span>
-          <span class="legend-item"><span class="legend-dot" style="background:#B7770D"></span>Tier 2 — Warm</span>
-          <span class="legend-item"><span class="legend-dot" style="background:#0C447C"></span>Tier 3 — Contact</span>
-          <span class="legend-item"><span class="legend-dot" style="background:#9C9A92"></span>Tier 4 — Cold</span>
-        </div>
-        <div class="chart-wrap" style="height:220px"><canvas id="chartPipelineTiers" role="img" aria-label="Engagement tier breakdown"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Warm prospects — immediate action</div>
-        <div class="chart-sub">Tier 1 and Tier 2 accounts</div>
-        <div id="warm-table"></div>
-      </div>
+    <div id="pp-metrics" class="metrics"></div>
+    <div class="section-head">Engagement tier definitions</div>
+    <div class="tier-def">
+      <div class="tier-row"><div class="tier-badge"><span class="badge b-green">Tier 1 — High</span></div><div class="tier-text">Company has at least one active Ascend member AND attended 2+ events. Warmest possible touchpoint. Action: open sponsor conversation now.</div></div>
+      <div class="tier-row"><div class="tier-badge"><span class="badge b-amber">Tier 2 — Warm</span></div><div class="tier-text">Company has an active member OR 2+ event attendees, but not both. Action: leverage the member as internal champion for intro.</div></div>
+      <div class="tier-row"><div class="tier-badge"><span class="badge b-blue">Tier 3 — Contact</span></div><div class="tier-text">No active member data and 0–1 event attendees, but a known contact exists (from Sponsor Targets doc). Action: follow up with known contact before relationship goes cold.</div></div>
+      <div class="tier-row"><div class="tier-badge"><span class="badge b-gray">Tier 4 — Cold</span></div><div class="tier-text">No known connection — no member, no attendees, no named contact. Action: LinkedIn research to find ERG/DEI lead before any outreach.</div></div>
     </div>
-    <div class="section-head">Full target account intelligence</div>
-    <div class="chart-card"><div id="pipeline-table"></div></div>
+    <div class="section-head">Tier 1 &amp; 2 — immediate action accounts</div>
+    <div class="chart-card" style="margin-bottom:1rem"><div id="warm-tbl"></div></div>
+    <div class="section-head">Full 26-account target pipeline</div>
+    <div class="chart-card"><div id="full-pipeline-tbl"></div></div>
   </div>
-
 </div>
 
 <script>
-document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
 
-const DATA = { ccr: null, corpdev: null, events: null };
-const STORAGE_KEYS = { ccr: 'ascend_ccr_v1', corpdev: 'ascend_corpdev_v1', events: 'ascend_events_v1' };
-const STORAGE_META = { ccr: 'ascend_ccr_meta', corpdev: 'ascend_corpdev_meta', events: 'ascend_events_meta' };
+const CHARTS={};
+const DATA={ccr:null,corpdev:null,events:null};
 
-function saveToStorage(type, data, filename) {
-  try {
-    localStorage.setItem(STORAGE_KEYS[type], JSON.stringify(data));
-    localStorage.setItem(STORAGE_META[type], JSON.stringify({ filename, rows: data.length, saved: new Date().toISOString() }));
-  } catch(e) { console.warn('Storage full, could not save', type, e); }
-}
-
-function loadFromStorage() {
-  let anyLoaded = false;
-  ['ccr','corpdev','events'].forEach(type => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS[type]);
-      const meta = JSON.parse(localStorage.getItem(STORAGE_META[type]) || 'null');
-      if (raw && meta) {
-        DATA[type] = JSON.parse(raw);
-        document.getElementById('btn-'+type).classList.add('loaded');
-        anyLoaded = true;
-        console.log('Restored', type, meta.rows, 'rows from', meta.filename);
-      }
-    } catch(e) { console.warn('Could not restore', type, e); }
-  });
-  if (anyLoaded) { updateStatus(); renderAll(); }
-  return anyLoaded;
-}
-
-function clearStorage() {
-  ['ccr','corpdev','events'].forEach(type => {
-    localStorage.removeItem(STORAGE_KEYS[type]);
-    localStorage.removeItem(STORAGE_META[type]);
-    DATA[type] = null;
-    document.getElementById('btn-'+type).classList.remove('loaded');
-  });
-  updateStatus();
-  document.getElementById('summary-metrics').innerHTML = '';
-  alert('All saved data cleared. Drop new files to reload.');
-}
-const CHARTS = {};
-
-const LOOKUP = {
-  'jp morgan chase & co.':'JPMorgan Chase','jpmc':'JPMorgan Chase','jpmorgan':'JPMorgan Chase','jpmchase':'JPMorgan Chase',
-  'deloitte & touche llp':'Deloitte','deloitte consulting llp':'Deloitte','deloitte consulting':'Deloitte','deloitte tax llp':'Deloitte',
-  'ernst & young llp':'EY / Ernst & Young','ernst & young':'EY / Ernst & Young','ernst and young':'EY / Ernst & Young',
-  'pwc':'PwC','pricewaterhousecoopers':'PwC','pwc advisory':'PwC',
-  'rsm us llp':'RSM','kpmg llc':'KPMG',
-  'jll':'JLL (Jones Lang LaSalle)','jones lang lasalle':'JLL (Jones Lang LaSalle)',
-  'exelon':'Exelon','comed':'Exelon',
-  'allstate':'Allstate',"mcdonald's":'McDonald\'s','mcdonalds':'McDonald\'s',
-  'abbott laboratories':'Abbott Laboratories','abbvie':'AbbVie',
-  'united airlines holdings':'United Airlines Holdings','united airlines':'United Airlines Holdings',
-  'mondelez international':'Mondelez International','mondelez':'Mondelez International',
-  'northern trust':'Northern Trust','kellanova':'Kellanova',
-  'conagra brands':'Conagra Brands','conagra':'Conagra Brands',
-  'motorola solutions':'Motorola Solutions','motorola':'Motorola Solutions',
-  'archer daniels midland':'Archer Daniels Midland (ADM)',
-  'cme group':'CME Group','ge healthcare':'GE HealthCare Technologies',
-  'illinois tool works':'Illinois Tool Works (ITW)','itw':'Illinois Tool Works (ITW)',
-  'cdw':'CDW','baxter international':'Baxter International','baxter':'Baxter International',
-  'arthur j. gallagher':'Arthur J. Gallagher','gallagher':'Arthur J. Gallagher',
-  'aon':'Aon','transunion':'TransUnion','morningstar':'Morningstar',
-  'wintrust financial':'Wintrust Financial','wintrust':'Wintrust Financial',
-  'zebra technologies':'Zebra Technologies','zebra':'Zebra Technologies','alight':'Alight',
-  'mars, inc.':'Mars, Inc.','mars inc.':'Mars, Inc.','mars wrigley':'Mars, Inc.',
-  'protiviti':'Robert Half & Protiviti','robert half':'Robert Half & Protiviti',
-  'hyatt hotels':'Hyatt Hotels','hyatt':'Hyatt Hotels',
-  'fidelity investments':'Fidelity Investments','fidelity':'Fidelity Investments',
-  'wipfli':'Wipfli','west monroe':'West Monroe',
-  'ingredion incorporated':'Ingredion','ingredion':'Ingredion',
-  'nationwide':'Nationwide','riveron':'Riveron',
-  'pepsico':'PepsiCo','boeing':'Boeing','accenture':'Accenture',
-  'crowe llp':'Crowe','crowe':'Crowe','cibc':'CIBC',
-  'sargent & lundy':'Sargent & Lundy','encova':'Encova',
-  'kraftheinz':'KraftHeinz','kraft heinz':'KraftHeinz'
-};
-
-const TARGETS = ['United Airlines Holdings','Mondelez International','McDonald\'s','JLL (Jones Lang LaSalle)',
-  'Exelon','GE HealthCare Technologies','Northern Trust','Kellanova','Conagra Brands','Motorola Solutions',
-  'Archer Daniels Midland (ADM)','CME Group','Allstate','AbbVie','Abbott Laboratories',
-  'Illinois Tool Works (ITW)','CDW','Baxter International','Discover Financial Services',
-  'Arthur J. Gallagher','Aon','TransUnion','Morningstar','Wintrust Financial','Zebra Technologies','Alight'];
-
-const CURRENT_SPONSORS = ['RSM','Crowe','Sargent & Lundy','CIBC','Encova','Robert Half & Protiviti',
-  'Hyatt Hotels','Nationwide','Mars, Inc.','Wipfli','Ingredion','KraftHeinz','PwC','West Monroe',
-  'JPMorgan Chase','Riveron'];
-
-const SPONSOR_DATA = [
-  {name:'JPMC',tier:'Jade',amount:7000,expires:'Feb 2027',status:'Active',paid:'Paid',value:0,delta:0,contact:'TBD'},
-  {name:'RSM',tier:'Silver',amount:5000,expires:'May 2026',status:'Active',paid:'Paid',value:9750,delta:4750,contact:'Clarence Ang'},
-  {name:'Crowe',tier:'Silver',amount:5200,expires:'Nov 2026',status:'Active',paid:'Paid',value:7400,delta:2200,contact:'Arlene Zarate'},
-  {name:'Sargent & Lundy',tier:'Silver',amount:5000,expires:'Aug 2026',status:'Active',paid:'Paid',value:7298,delta:2298,contact:'Alexander Magallon'},
-  {name:'CIBC',tier:'Silver',amount:5000,expires:'Oct 2026',status:'Active',paid:'Paid',value:8100,delta:3100,contact:'Mona Asra'},
-  {name:'Encova',tier:'Silver',amount:5000,expires:'Dec 2026',status:'Active',paid:'Paid',value:8100,delta:3100,contact:'—'},
-  {name:'Robert Half & Protiviti',tier:'Jade',amount:7000,expires:'Aug 2026',status:'Active',paid:'Paid',value:6035,delta:-965,contact:'James Pan'},
-  {name:'Hyatt',tier:'Bronze',amount:3500,expires:'Jun 2026',status:'Active',paid:'Paid',value:6485,delta:2985,contact:'Alexia Huggins'},
-  {name:'Nationwide',tier:'Bronze',amount:3000,expires:'Aug 2026',status:'Signed',paid:'Unpaid',value:4400,delta:1400,contact:'Paula Carter'},
-  {name:'Mars Wrigley',tier:'Bronze',amount:3000,expires:'Dec 2026',status:'Signed',paid:'Paid to National',value:2850,delta:-150,contact:'Caleb Hall'},
-  {name:'Wipfli',tier:'Bronze',amount:3000,expires:'Jan 2027',status:'Active',paid:'Paid',value:0,delta:0,contact:'—'},
-  {name:'PwC',tier:'Jade',amount:4000,expires:'Feb 2027',status:'Active',paid:'Paid',value:1550,delta:-2450,contact:'Melissa Lee'},
-  {name:'Riveron',tier:'Bronze',amount:3000,expires:'Mar 2027',status:'Active',paid:'Paid',value:0,delta:0,contact:'—'},
-  {name:'Ingredion',tier:'Supporter',amount:2500,expires:'Mar 2027',status:'Active',paid:'Paid',value:3050,delta:550,contact:'Pathik Bhatt'},
-  {name:'West Monroe',tier:'Supporter',amount:1000,expires:'May 2026',status:'Active',paid:'Paid',value:9898,delta:8898,contact:'Calvin Cheng'},
-  {name:'KraftHeinz',tier:'Supporter',amount:1500,expires:'Aug 2026',status:'Active',paid:'Paid',value:2750,delta:1250,contact:'NP Phan'},
+// ── TARGET ACCOUNTS — from Sponsor Targets doc ──────────────────────────────
+const TARGETS=[
+  {rank:'74',name:'United Airlines Holdings',industry:'Airlines',notes:'',contact:''},
+  {rank:'125',name:'Mondelez International',industry:'Food / Consumer',notes:'',contact:''},
+  {rank:'165',name:"McDonald's",industry:'Food Services',notes:'Paul Nguyen — Director, active member, attended Meets & Eats, interested in volunteering',contact:'paul.khoa.nguyen@gmail.com'},
+  {rank:'188',name:'JLL (Jones Lang LaSalle)',industry:'Real Estate Services',notes:'Ann Taowarodom (VQO, attended several events); Denise Lam (met at Engage); Rehan Tengku; Alan Tse (GC, Executive/Anna contact)',contact:'Ann.Taowarodom@jll.com'},
+  {rank:'192',name:'Exelon',industry:'Utilities',notes:'Nikki Southwell — former chapter president, best internal champion',contact:'nikki.southwell@exeloncorp.com'},
+  {rank:'219',name:'GE HealthCare Technologies',industry:'Medical Equipment',notes:'',contact:''},
+  {rank:'269',name:'Northern Trust',industry:'Banking / Finance',notes:'',contact:''},
+  {rank:'332',name:'Kellanova',industry:'Food / Consumer',notes:'Kim Carroll met at Meets & Eats (VQO); Caleb Hall is primary Mars/Midwest contact',contact:''},
+  {rank:'350',name:'Conagra Brands',industry:'Food / Consumer',notes:'',contact:''},
+  {rank:'392',name:'Motorola Solutions',industry:'Comms Technology',notes:'',contact:''},
+  {rank:'50',name:'Archer Daniels Midland (ADM)',industry:'Food Production',notes:'',contact:''},
+  {rank:'~569',name:'CME Group',industry:'Financial Exchanges',notes:'',contact:''},
+  {rank:'~32',name:'Allstate',industry:'Insurance',notes:'IAG sponsor 2022/2023',contact:''},
+  {rank:'~60',name:'AbbVie',industry:'Pharmaceuticals',notes:'VQO: Kun Yin, Supriya Nair, Divya Sunkara, Lakshmi Rebbapragada — comps given Mar/Apr 2025',contact:''},
+  {rank:'~90',name:'Abbott Laboratories',industry:'Medical Products',notes:'',contact:''},
+  {rank:'~100',name:'Illinois Tool Works (ITW)',industry:'Industrial Machinery',notes:'',contact:''},
+  {rank:'~140',name:'CDW',industry:'Technology Products',notes:'CW may have a contact',contact:''},
+  {rank:'~200',name:'Baxter International',industry:'Medical Products',notes:'',contact:''},
+  {rank:'~240',name:'Discover Financial Services',industry:'Financial Services',notes:'',contact:''},
+  {rank:'~360',name:'Arthur J. Gallagher',industry:'Insurance Brokerage',notes:'',contact:''},
+  {rank:'~600',name:'Aon',industry:'Risk Advisory',notes:'',contact:''},
+  {rank:'~640',name:'TransUnion',industry:'Financial Data',notes:'',contact:''},
+  {rank:'~800',name:'Morningstar',industry:'Financial Research',notes:'',contact:''},
+  {rank:'~810',name:'Wintrust Financial',industry:'Banking',notes:'Last contact Jul 2024; Jasmine Davis (DEI Mgr) left 2025; Gina Stuart (VP, People & Culture)',contact:'GStuart@wintrust.com'},
+  {rank:'~860',name:'Zebra Technologies',industry:'Technology',notes:'',contact:''},
+  {rank:'~934',name:'Alight',industry:'HR Tech',notes:'',contact:''},
 ];
 
-function canon(raw) {
-  if (!raw) return '';
-  const k = String(raw).trim().toLowerCase();
-  return LOOKUP[k] || String(raw).trim();
+// ── SPONSOR DATA (baked in) ─────────────────────────────────────────────────
+const SPONSORS=[
+  {name:'JPMC',tier:'Jade',amount:7000,expires:'Feb 2027',paid:'Paid',value:0,contact:'TBD',status:'Active',daysLeft:300},
+  {name:'RSM',tier:'Silver',amount:5000,expires:'May 2026',paid:'Paid',value:9750,contact:'Clarence Ang',status:'Active',daysLeft:25},
+  {name:'Crowe',tier:'Silver',amount:5200,expires:'Nov 2026',paid:'Paid',value:7400,contact:'Arlene Zarate',status:'Active',daysLeft:205},
+  {name:'Sargent & Lundy',tier:'Silver',amount:5000,expires:'Aug 2026',paid:'Paid',value:7298,contact:'Alexander Magallon',status:'Active',daysLeft:96},
+  {name:'CIBC',tier:'Silver',amount:5000,expires:'Oct 2026',paid:'Paid',value:8100,contact:'Mona Asra',status:'Active',daysLeft:157},
+  {name:'Encova',tier:'Silver',amount:5000,expires:'Dec 2026',paid:'Paid',value:8100,contact:'TBD',status:'Active',daysLeft:219},
+  {name:'Robert Half & Protiviti',tier:'Jade',amount:7000,expires:'Aug 2026',paid:'Paid',value:6035,contact:'James Pan',status:'Active',daysLeft:96},
+  {name:'Hyatt',tier:'Bronze',amount:3500,expires:'Jun 2026',paid:'Paid',value:6485,contact:'Alexia Huggins',status:'Active',daysLeft:56},
+  {name:'Nationwide',tier:'Bronze',amount:3000,expires:'Aug 2026',paid:'Unpaid',value:4400,contact:'Paula Carter',status:'Signed',daysLeft:96},
+  {name:'Mars Wrigley',tier:'Bronze',amount:3000,expires:'Dec 2026',paid:'Paid to National',value:2850,contact:'Caleb Hall',status:'Signed',daysLeft:219},
+  {name:'Wipfli',tier:'Bronze',amount:3000,expires:'Jan 2027',paid:'Paid',value:0,contact:'TBD',status:'Active',daysLeft:250},
+  {name:'PwC',tier:'Jade',amount:4000,expires:'Feb 2027',paid:'Paid',value:1550,contact:'Melissa Lee',status:'Active',daysLeft:300},
+  {name:'Riveron',tier:'Bronze',amount:3000,expires:'Mar 2027',paid:'Paid',value:0,contact:'TBD',status:'Active',daysLeft:335},
+  {name:'Ingredion',tier:'Supporter',amount:2500,expires:'Mar 2027',paid:'Paid',value:3050,contact:'Pathik Bhatt',status:'Active',daysLeft:335},
+  {name:'West Monroe',tier:'Supporter',amount:1000,expires:'May 2026',paid:'Paid',value:9898,contact:'Calvin Cheng',status:'Active',daysLeft:25},
+  {name:'KraftHeinz',tier:'Supporter',amount:1500,expires:'Aug 2026',paid:'Paid',value:2750,contact:'NP Phan',status:'Active',daysLeft:96},
+];
+const CURRENT_SPONSOR_NAMES=SPONSORS.map(s=>s.name.toLowerCase());
+const TARGET_NAMES=TARGETS.map(t=>t.name);
+
+// ── LOOKUP ──────────────────────────────────────────────────────────────────
+const LOOKUP={'jp morgan chase & co.':'JPMorgan Chase','jpmc':'JPMorgan Chase','jpmorgan chase':'JPMorgan Chase',
+'deloitte & touche llp':'Deloitte','deloitte consulting llp':'Deloitte','deloitte consulting':'Deloitte',
+'ernst & young llp':'EY / Ernst & Young','ernst & young':'EY / Ernst & Young','ey':'EY / Ernst & Young',
+'pwc':'PwC','pricewaterhosecoopers llp':'PwC','pricewaterhousecoopers':'PwC',
+'rsm us llp':'RSM','rsm':'RSM','kpmg llc':'KPMG','kpmg':'KPMG',
+'jll':'JLL (Jones Lang LaSalle)','jones lang lasalle':'JLL (Jones Lang LaSalle)',
+'exelon':'Exelon','comed':'Exelon',
+'allstate':'Allstate',"mcdonald's corporation":'McDonald\'s',"mcdonald's":'McDonald\'s',
+'mars, inc.':'Mars, Inc.','mars inc.':'Mars, Inc.','mars wrigley':'Mars, Inc.','mars/kellanova':'Kellanova',
+'protiviti':'Robert Half & Protiviti','robert half':'Robert Half & Protiviti',
+'hyatt hotels corporation':'Hyatt Hotels','hyatt':'Hyatt Hotels',
+'fidelity investments':'Fidelity Investments','fidelity':'Fidelity Investments',
+'wipfli':'Wipfli','west monroe':'West Monroe','ingredion':'Ingredion',
+'nationwide':'Nationwide','riveron':'Riveron','crowe llp':'Crowe','crowe':'Crowe',
+'cibc':'CIBC','sargent and lundy':'Sargent & Lundy','sargent & lundy':'Sargent & Lundy',
+'encova':'Encova','the kraft heinz company':'KraftHeinz','kraft heinz':'KraftHeinz','kraftheinz':'KraftHeinz',
+'pepsico':'PepsiCo','boeing':'Boeing','accenture':'Accenture',
+'ernst & young':'EY / Ernst & Young','boston scientific':'Boston Scientific',
+'guild':'Guild'
+};
+
+function canon(raw){
+  if(!raw)return'';
+  const k=String(raw).trim().toLowerCase();
+  return LOOKUP[k]||String(raw).trim();
+}
+function getF(row,...keys){
+  for(const k of keys){if(row[k]!==undefined&&row[k]!==''&&row[k]!==null)return row[k];}
+  const rk=Object.keys(row);
+  for(const k of keys){const f=rk.find(r=>r.toLowerCase().replace(/[_\s]/g,'').includes(k.toLowerCase().replace(/[_\s]/g,'')));if(f)return row[f];}
+  return'';
+}
+function isActive(row){
+  const sk=Object.keys(row).find(k=>k.startsWith('Status as of')||k.toLowerCase()==='status');
+  return sk?String(row[sk]).includes('Active'):false;
 }
 
-function showPage(id) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('page-'+id).classList.add('active');
-  event.target.classList.add('active');
-  renderPage(id);
+// ── STORAGE ────────────────────────────────────────────────────────────────
+function save(type,data,fname){
+  try{localStorage.setItem('ascend_'+type,JSON.stringify(data));
+  localStorage.setItem('ascend_'+type+'_meta',JSON.stringify({fname,rows:data.length,saved:new Date().toISOString()}));}catch(e){}
+}
+function restore(){
+  let any=false;
+  ['ccr','corpdev','events'].forEach(t=>{
+    try{const r=localStorage.getItem('ascend_'+t);const m=JSON.parse(localStorage.getItem('ascend_'+t+'_meta')||'null');
+    if(r&&m){DATA[t]=JSON.parse(r);document.getElementById('btn-'+t).classList.add('loaded');any=true;}}catch(e){}
+  });
+  if(any){updateStatus();renderAll();}
+  return any;
+}
+function clearSaved(){
+  ['ccr','corpdev','events'].forEach(t=>{localStorage.removeItem('ascend_'+t);localStorage.removeItem('ascend_'+t+'_meta');DATA[t]=null;document.getElementById('btn-'+t).classList.remove('loaded');});
+  updateStatus();renderAll();
+}
+function updateStatus(){
+  const pills=['ccr','corpdev','events'].map(t=>{
+    const m=JSON.parse(localStorage.getItem('ascend_'+t+'_meta')||'null');
+    return`<span class="status-pill" style="background:${m?'#EAF3DE':'#F1EFE8'};color:${m?'#0F6E56':'#9C9A92'}">${{ccr:'CCR',corpdev:'Corp Dev',events:'Events'}[t]}: ${m?m.rows+' rows':'not loaded'}</span>`;
+  }).join('');
+  document.getElementById('statusBar').innerHTML=pills;
+  const metas=['ccr','corpdev','events'].map(t=>{try{return JSON.parse(localStorage.getItem('ascend_'+t+'_meta')||'null');}catch(e){return null;}}).filter(Boolean);
+  if(metas.length){
+    const d=new Date(metas.map(m=>new Date(m.saved)).sort((a,b)=>b-a)[0]);
+    document.getElementById('storageInfo').innerHTML=`Saved in browser — last updated ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} &nbsp;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear</span>`;
+  } else document.getElementById('storageInfo').innerHTML='';
+  if(metas.length===3)document.getElementById('uploadZone').classList.add('loaded');
 }
 
-function loadFile(type, input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const wb = XLSX.read(e.target.result, {type:'array'});
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      DATA[type] = XLSX.utils.sheet_to_json(ws, {defval:''});
-      saveToStorage(type, DATA[type], file.name);
+// ── FILE LOADING ────────────────────────────────────────────────────────────
+function loadFile(type,input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      let data=null;
+      if(type==='events'){
+        // Check-In App: look for Master Attendance sheet, skip rows 1-17
+        const sheetName=wb.SheetNames.find(s=>s.toLowerCase().includes('master'))|| wb.SheetNames[wb.SheetNames.length-1];
+        const ws=wb.Sheets[sheetName];
+        // Read raw, find header row
+        const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        let headerIdx=0;
+        for(let i=0;i<Math.min(25,raw.length);i++){if(raw[i].some(c=>String(c).toLowerCase().includes('event_name')||String(c).toLowerCase()==='event_name')){headerIdx=i;break;}}
+        const headers=raw[headerIdx];
+        data=raw.slice(headerIdx+1).filter(r=>r.some(c=>c!==''&&c!==null)).map(r=>{
+          const obj={};headers.forEach((h,i)=>{obj[h]=r[i];});return obj;
+        }).filter(r=>getF(r,'First_Name','First Name')!=='');
+      } else if(type==='corpdev'){
+        // Corp Dev Reference — try to find a useful sheet
+        const sheetName=wb.SheetNames.find(s=>s.toLowerCase().includes('pursuit')||s.toLowerCase().includes('sponsor'))||wb.SheetNames[0];
+        const ws=wb.Sheets[sheetName];
+        data=XLSX.utils.sheet_to_json(ws,{defval:''});
+      } else {
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        data=XLSX.utils.sheet_to_json(ws,{defval:''});
+      }
+      DATA[type]=data;
+      save(type,data,file.name);
       document.getElementById('btn-'+type).classList.add('loaded');
-      document.getElementById('btn-'+type).querySelector('.file-dot').style.background = '#0F6E56';
-      updateStatus();
-      renderAll();
-    } catch(err) { alert('Error reading file: ' + err.message); }
+      updateStatus();renderAll();
+    }catch(err){alert('Error reading file: '+err.message);}
   };
   reader.readAsArrayBuffer(file);
 }
 
-function updateStatus() {
-  const storageInfo = document.getElementById('storageInfo');
-  if (storageInfo) {
-    const metas = ['ccr','corpdev','events'].map(type => {
-      try { return JSON.parse(localStorage.getItem(STORAGE_META[type]) || 'null'); } catch(e) { return null; }
-    }).filter(Boolean);
-    if (metas.length > 0) {
-      const latest = metas.map(m => new Date(m.saved)).sort((a,b) => b-a)[0];
-      storageInfo.innerHTML = 'Data saved in browser — last updated ' + latest.toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}) + 
-        ' &nbsp;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="clearStorage()">Clear saved data</span>';
-    } else { storageInfo.innerHTML = ''; }
-  }
-  const bar = document.getElementById('statusBar');
-  const items = [
-    {key:'ccr', label:'CCR'},
-    {key:'corpdev', label:'Corp Dev'},
-    {key:'events', label:'Events'},
-  ];
-  bar.innerHTML = items.map(i => `<span class="status-pill" style="background:${DATA[i.key] ? '#EAF3DE' : '#F1EFE8'};color:${DATA[i.key] ? '#0F6E56' : '#9C9A92'}">${i.label}: ${DATA[i.key] ? DATA[i.key].length+' rows' : 'not loaded'}</span>`).join('');
-  
-  const allLoaded = items.every(i => DATA[i.key]);
-  const zone = document.getElementById('uploadZone');
-  if (allLoaded) { zone.classList.add('loaded'); zone.querySelector('.upload-title').textContent = 'Dashboard loaded — drop new files any time to refresh'; }
+// ── PAGE ROUTING ─────────────────────────────────────────────────────────────
+function showPage(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(el)el.classList.add('active');
+  renderPage(id);
+}
+function renderAll(){['summary','membership','events','sponsorship','pipeline'].forEach(p=>{
+  if(document.getElementById('page-'+p).classList.contains('active'))renderPage(p);
+});}
+function renderPage(id){
+  if(id==='summary')renderSummary();
+  else if(id==='membership')renderMembership();
+  else if(id==='events')renderEvents();
+  else if(id==='sponsorship')renderSponsorship();
+  else if(id==='pipeline')renderPipeline();
 }
 
-function metric(label, value, sub='', type='') {
-  return `<div class="metric ${type}"><div class="metric-label">${label}</div><div class="metric-value">${value}</div>${sub ? `<div class="metric-sub">${sub}</div>` : ''}</div>`;
-}
+function dc(id){if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id];}}
+function metric(label,val,sub,type=''){return`<div class="metric ${type}"><div class="metric-label">${label}</div><div class="metric-value">${val}</div>${sub?`<div class="metric-sub">${sub}</div>`:''}</div>`;}
 
-function getActiveMembers() {
-  if (!DATA.ccr) return [];
-  return DATA.ccr.filter(r => {
-    const status = String(r['Status as of 04/26'] || r['Status'] || '');
-    return status.includes('Active');
+// ── COMPUTED DATA HELPERS ────────────────────────────────────────────────────
+function activeMembers(){
+  if(!DATA.ccr)return[];
+  return DATA.ccr.filter(r=>isActive(r));
+}
+function allAttended(){
+  if(!DATA.events)return[];
+  // Check-In App Master Attendance - filter rows with event name
+  return DATA.events.filter(r=>{
+    const ev=getF(r,'Event_Name','Event Name','event_name');
+    const fn=getF(r,'First_Name','First Name','first_name');
+    return ev&&fn;
   });
 }
-
-function getAttended() {
-  if (!DATA.events) return [];
-  return DATA.events.filter(r => String(r['Attended'] || r['Attended?'] || '') === 'Yes');
+function tierFor(name){
+  const target=TARGETS.find(t=>t.name===name||t.name.toLowerCase()===name.toLowerCase());
+  const am=activeMembers();
+  const att=allAttended();
+  const mCount=am.filter(r=>canon(getF(r,'Employer_Name','Employer Name','Organization')).toLowerCase().includes(name.toLowerCase().substring(0,7))).length;
+  const aCount=att.filter(r=>canon(getF(r,'Organization','organization')).toLowerCase().includes(name.toLowerCase().substring(0,7))).length;
+  const hasContact=target&&(target.contact||target.notes);
+  if(mCount>=1&&aCount>=2)return'Tier 1';
+  if(mCount>=1||aCount>=2)return'Tier 2';
+  if(hasContact||mCount>0||aCount>0)return'Tier 3';
+  return'Tier 4';
 }
 
-function renderAll() {
-  renderPage('summary');
-}
+// ── RENDER: SUMMARY ─────────────────────────────────────────────────────────
+function renderSummary(){
+  const am=activeMembers();
+  const att=allAttended();
+  const totalRev=SPONSORS.reduce((s,r)=>s+r.amount,0);
+  const urgent=SPONSORS.filter(s=>s.daysLeft<=60);
+  const tiers={1:0,2:0,3:0,4:0};
+  TARGETS.forEach(t=>{tiers[parseInt(tierFor(t.name).replace('Tier ',''))]++;});
 
-function renderPage(id) {
-  if (id === 'summary') renderSummary();
-  else if (id === 'membership') renderMembership();
-  else if (id === 'events') renderEvents();
-  else if (id === 'sponsorship') renderSponsorship();
-  else if (id === 'pipeline') renderPipeline();
-}
-
-function destroyChart(id) {
-  if (CHARTS[id]) { CHARTS[id].destroy(); delete CHARTS[id]; }
-}
-
-function renderSummary() {
-  const active = getActiveMembers();
-  const attended = getAttended();
-  const totalRev = SPONSOR_DATA.reduce((s,r) => s+r.amount, 0);
-  
-  const urgentRenewals = SPONSOR_DATA.filter(s => {
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const [mon, yr] = s.expires.split(' ');
-    if (!mon || !yr) return false;
-    const exp = new Date(parseInt(yr), months.indexOf(mon), 1);
-    const now = new Date(); const diff = (exp - now) / (1000*60*60*24);
-    return diff < 60 && (s.status === 'Not Started' || s.paid === 'Unpaid' || diff < 0);
-  });
-
-  const corpTicketBuyers = {};
-  active.forEach(r => {
-    const sp = String(r['Promo Code Sponsor'] || '');
-    if (sp && sp !== 'nan' && !CURRENT_SPONSORS.some(s => sp.toLowerCase().includes(s.toLowerCase().substring(0,5)))) {
-      corpTicketBuyers[sp] = (corpTicketBuyers[sp] || 0) + 1;
-    }
-  });
-
-  document.getElementById('summary-metrics').innerHTML = [
-    metric('Active members', active.length || '—', DATA.ccr ? 'from CCR export' : 'upload CCR to see', 'success'),
-    metric('Contracted revenue', DATA.corpdev ? '$'+totalRev.toLocaleString() : '$47,200', '16 current sponsors'),
-    metric('2025 attendees', attended.length || '—', DATA.events ? 'confirmed attended' : 'upload events to see'),
-    metric('Renewals at risk', urgentRenewals.length, 'expiring within 60 days', urgentRenewals.length > 0 ? 'danger' : 'success'),
-    metric('Target accounts', TARGETS.length, 'Midwest F1000 prospects'),
-    metric('Corp ticket non-sponsors', Object.keys(corpTicketBuyers).length || '5+', 'buying memberships, not sponsoring', 'warn'),
+  document.getElementById('sum-metrics').innerHTML=[
+    metric('Active members',am.length||'—',DATA.ccr?'from CCR export':'upload CCR','success'),
+    metric('Contracted revenue','$'+totalRev.toLocaleString(),'16 sponsors, 2026'),
+    metric('2026 event attendees',att.length||'—',DATA.events?'from Check-In App':'upload Check-In App'),
+    metric('Renewals ≤60 days',urgent.length,urgent.map(s=>s.name).join(', '),urgent.length?'danger':''),
+    metric('Pipeline Tier 1+2',tiers[1]+tiers[2],'of 26 accounts with connections',tiers[1]+tiers[2]>0?'success':'warn'),
   ].join('');
 
-  const renewalHTML = urgentRenewals.length > 0
-    ? `<table class="alert-table"><thead><tr><th>Sponsor</th><th>Expires</th><th>Status</th><th>Contact</th><th>Action</th></tr></thead><tbody>${urgentRenewals.map(s => `<tr><td><strong>${s.name}</strong></td><td>${s.expires}</td><td><span class="badge badge-red">${s.paid}</span></td><td>${s.contact}</td><td><span class="badge badge-amber">Initiate renewal</span></td></tr>`).join('')}</tbody></table>`
-    : `<table class="alert-table"><thead><tr><th>Sponsor</th><th>Expires</th><th>Status</th></tr></thead><tbody>${SPONSOR_DATA.filter(s=>['May 2026','Jun 2026','Aug 2026'].includes(s.expires)).map(s=>`<tr><td><strong>${s.name}</strong></td><td>${s.expires}</td><td><span class="badge badge-amber">Monitor</span></td></tr>`).join('')}</tbody></table>`;
-  document.getElementById('renewals-table').innerHTML = renewalHTML;
+  // Urgent table
+  const urgentRows=SPONSORS.filter(s=>s.daysLeft<=90).sort((a,b)=>a.daysLeft-b.daysLeft);
+  document.getElementById('urgent-table').innerHTML=urgentRows.length
+    ?`<table class="tbl"><thead><tr><th>Sponsor</th><th>Tier</th><th>Expires</th><th>Days left</th><th>Payment</th><th>Contact</th><th>Action</th></tr></thead><tbody>${urgentRows.map(s=>`<tr><td><strong>${s.name}</strong></td><td>${tierBadge(s.tier)}</td><td>${s.expires}</td><td><span class="badge ${s.daysLeft<=30?'b-red':s.daysLeft<=60?'b-amber':'b-blue'}">${s.daysLeft}</span></td><td><span class="badge ${s.paid==='Paid'?'b-green':'b-red'}">${s.paid}</span></td><td style="color:var(--blue);font-size:10px">${s.contact}</td><td style="font-size:10px;color:var(--text2)">${s.daysLeft<=60?'Initiate renewal NOW':'Monitor'}</td></tr>`).join('')}</tbody></table>`
+    :'<div class="empty">No renewals within 90 days</div>';
 
-  destroyChart('chartTier');
-  const tierGroups = {};
-  SPONSOR_DATA.forEach(s => { tierGroups[s.tier] = (tierGroups[s.tier]||0) + s.amount; });
-  CHARTS['chartTier'] = new Chart(document.getElementById('chartTier'), {
-    type: 'doughnut',
-    data: {
-      labels: Object.keys(tierGroups),
-      datasets: [{ data: Object.values(tierGroups), backgroundColor: ['#1A1A2E','#0F6E56','#7F8C8D','#B7770D','#2471A3'], borderWidth: 0 }]
-    },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ boxWidth:10, font:{size:11} } } } }
-  });
-
-  destroyChart('chartTiers');
-  const tierCounts = {'Tier 1 — High':3,'Tier 2 — Warm':2,'Tier 3 — Contact Only':3,'Tier 4 — No Connection':18};
-  CHARTS['chartTiers'] = new Chart(document.getElementById('chartTiers'), {
-    type: 'bar',
-    data: {
-      labels: Object.keys(tierCounts),
-      datasets: [{ data: Object.values(tierCounts), backgroundColor: ['#27500A','#B7770D','#0C447C','#9C9A92'], borderWidth:0 }]
-    },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ticks:{font:{size:10}}}, y:{ticks:{stepSize:1}} } }
-  });
-}
-
-function renderMembership() {
-  const active = getActiveMembers();
-  if (!active.length) {
-    document.getElementById('member-metrics').innerHTML = metric('Status','No CCR loaded','Upload the CCR export file');
-    return;
-  }
-
-  const corpCount = active.filter(r => String(r['Promo Code Sponsor']||'') && String(r['Promo Code Sponsor']||'') !== 'nan' && String(r['Promo Code Sponsor']||'') !== '').length;
-  const selfCount = active.length - corpCount;
-  
-  const expiringRaw = active.filter(r => {
-    const exp = String(r['Expiration Year/Month'] || r['Expiration Month'] || '');
-    return exp.includes('2026-04') || exp.includes('2026-05') || exp.includes('2026-06');
-  });
-
-  const empCount = {};
-  active.forEach(r => {
-    const emp = canon(r['Employer_Name'] || r['Employer Name'] || r['Organization'] || '');
-    if (emp) empCount[emp] = (empCount[emp]||0)+1;
-  });
-  const topEmps = Object.entries(empCount).sort((a,b)=>b[1]-a[1]).slice(0,15);
-
-  document.getElementById('member-metrics').innerHTML = [
-    metric('Active members', active.length, 'current snapshot', 'success'),
-    metric('Corporate-sponsored', corpCount, Math.round(corpCount/active.length*100)+'% of active'),
-    metric('Self-paid', selfCount, Math.round(selfCount/active.length*100)+'% of active'),
-    metric('Expiring (60 days)', expiringRaw.length, 'Apr–Jun 2026', expiringRaw.length > 5 ? 'warn' : ''),
-  ].join('');
-
-  destroyChart('chartMemberSplit');
-  document.getElementById('member-split-legend').innerHTML = `<span class="legend-item"><span class="legend-dot" style="background:#1A1A2E"></span>Corporate-sponsored ${corpCount} (${Math.round(corpCount/active.length*100)}%)</span><span class="legend-item"><span class="legend-dot" style="background:#0F6E56"></span>Self-paid ${selfCount} (${Math.round(selfCount/active.length*100)}%)</span>`;
-  CHARTS['chartMemberSplit'] = new Chart(document.getElementById('chartMemberSplit'), {
-    type: 'doughnut',
-    data: { labels:['Corporate-sponsored','Self-paid'], datasets:[{ data:[corpCount,selfCount], backgroundColor:['#1A1A2E','#0F6E56'], borderWidth:0 }] },
-    options: { responsive:true, maintainAspectRatio:false, cutout:'60%', plugins:{legend:{display:false}} }
-  });
-
-  destroyChart('chartEmployers');
-  CHARTS['chartEmployers'] = new Chart(document.getElementById('chartEmployers'), {
-    type: 'bar',
-    data: {
-      labels: topEmps.map(e=>e[0]),
-      datasets: [{ data: topEmps.map(e=>e[1]), backgroundColor: topEmps.map(e => TARGETS.includes(e[0]) ? '#C0392B' : '#1A1A2E'), borderWidth:0 }]
-    },
-    options: { indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ticks:{stepSize:1}}, y:{ticks:{font:{size:10}}} } }
-  });
-
-  const corpTicketBuyers = {};
-  active.forEach(r => {
-    const sp = String(r['Promo Code Sponsor']||'').trim();
-    if (sp && sp !== 'nan') corpTicketBuyers[sp] = (corpTicketBuyers[sp]||0)+1;
-  });
-  const nonSponsors = Object.entries(corpTicketBuyers)
-    .filter(([sp]) => !CURRENT_SPONSORS.some(s => sp.toLowerCase().includes(s.toLowerCase().substring(0,5))))
-    .sort((a,b)=>b[1]-a[1]);
-
-  document.getElementById('corp-ticket-table').innerHTML = nonSponsors.length
-    ? `<table class="alert-table"><thead><tr><th>Organization</th><th>Active members funded</th><th>Opportunity</th></tr></thead><tbody>${nonSponsors.map(([sp,cnt])=>`<tr><td><strong>${sp}</strong></td><td>${cnt}</td><td><span class="badge badge-amber">Already investing in Ascend — warm prospect</span></td></tr>`).join('')}</tbody></table>`
-    : '<div class="empty">Upload CCR to see corporate ticket buyers</div>';
-
-  document.getElementById('expiring-table').innerHTML = expiringRaw.length
-    ? `<table class="alert-table"><thead><tr><th>Name</th><th>Email</th><th>Employer</th><th>Expires</th></tr></thead><tbody>${expiringRaw.slice(0,20).map(r=>`<tr><td>${r['First_Name']||''} ${r['Last_Name']||''}</td><td style="color:var(--blue)">${r['Email_Address']||r['Email Address']||''}</td><td>${canon(r['Employer_Name']||r['Employer Name']||'')}</td><td><span class="badge badge-amber">${r['Expiration Year/Month']||r['Expiration Month']||''}</span></td></tr>`).join('')}</tbody></table>`
-    : '<div class="empty">No members expiring within 60 days found</div>';
-}
-
-function renderEvents() {
-  const attended = getAttended();
-  const allEvents = DATA.events || [];
-  
-  if (!allEvents.length) {
-    document.getElementById('event-metrics').innerHTML = metric('Status','No event data','Upload event registration export');
-    return;
-  }
-
-  const uniqueEvents = [...new Set(allEvents.map(r => r['Event_Name']||r['Event Name']||''))].filter(Boolean);
-  const uniqueAttendees = new Set(attended.map(r => String(r['Email Address']||r['Email']||'').toLowerCase())).size;
-
-  document.getElementById('event-metrics').innerHTML = [
-    metric('Events in dataset', uniqueEvents.length, '2025 event calendar'),
-    metric('Total attendances', attended.length, 'confirmed attended'),
-    metric('Unique attendees', uniqueAttendees, 'distinct individuals'),
-    metric('Attendance rate', Math.round(attended.length/Math.max(allEvents.length,1)*100)+'%', 'registered who attended'),
-  ].join('');
-
-  const eventMap = {};
-  allEvents.forEach(r => {
-    const ev = r['Event_Name']||r['Event Name']||'';
-    if (!ev) return;
-    if (!eventMap[ev]) eventMap[ev] = {reg:0,att:0};
-    eventMap[ev].reg++;
-    if (String(r['Attended']||r['Attended?']||'')==='Yes') eventMap[ev].att++;
-  });
-  const evLabels = Object.keys(eventMap).map(e => e.replace('Ascend Midwest: ','').replace('Ascend Midwest ','').substring(0,30));
-  const evReg = Object.values(eventMap).map(v=>v.reg);
-  const evAtt = Object.values(eventMap).map(v=>v.att);
-
-  destroyChart('chartEvents');
-  CHARTS['chartEvents'] = new Chart(document.getElementById('chartEvents'), {
+  // Value chart (summary page)
+  const hasVal=SPONSORS.filter(s=>s.value>0);
+  dc('cValue');
+  CHARTS['cValue']=new Chart(document.getElementById('cValue'),{
     type:'bar',
-    data:{ labels:evLabels, datasets:[
-      {label:'Registered',data:evReg,backgroundColor:'#D3D1C7',borderWidth:0},
-      {label:'Attended',data:evAtt,backgroundColor:'#1A1A2E',borderWidth:0}
+    data:{labels:hasVal.map(s=>s.name),datasets:[
+      {label:'Contracted',data:hasVal.map(s=>s.amount),backgroundColor:'#1A1A2E',borderWidth:0},
+      {label:'Value delivered',data:hasVal.map(s=>s.value),backgroundColor:'#0F6E56',borderWidth:0}
     ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9},maxRotation:45}},y:{ticks:{stepSize:5}}}}
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'$'+ctx.raw.toLocaleString()}}},scales:{x:{ticks:{font:{size:9},maxRotation:45,autoSkip:false}},y:{ticks:{callback:v=>'$'+(v/1000)+'k'}}}}
   });
 
-  const orgCount = {};
-  attended.forEach(r => {
-    const org = canon(r['Organization']||r['Employer']||'');
-    if (org) orgCount[org] = (orgCount[org]||0)+1;
+  // Tier donut
+  const tierGroups={};
+  SPONSORS.forEach(s=>{tierGroups[s.tier]=(tierGroups[s.tier]||0)+s.amount;});
+  const tierColors={'Gold':'#F39C12','Jade':'#534AB7','Silver':'#7F8C8D','Bronze':'#A04000','Supporter':'#185FA5'};
+  dc('cTier');
+  CHARTS['cTier']=new Chart(document.getElementById('cTier'),{
+    type:'doughnut',
+    data:{labels:Object.keys(tierGroups),datasets:[{data:Object.values(tierGroups),backgroundColor:Object.keys(tierGroups).map(t=>tierColors[t]||'#ccc'),borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.label+': $'+ctx.raw.toLocaleString()}}}}
   });
-  const topOrgs = Object.entries(orgCount).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  const tl=document.getElementById('tier-legend');
+  tl.innerHTML=Object.entries(tierGroups).map(([t,v])=>`<span class="legend-item"><span class="legend-dot" style="background:${tierColors[t]||'#ccc'}"></span>${t} $${(v/1000).toFixed(0)}K</span>`).join('');
 
-  destroyChart('chartEventOrgs');
-  CHARTS['chartEventOrgs'] = new Chart(document.getElementById('chartEventOrgs'), {
-    type:'bar',
-    data:{labels:topOrgs.map(e=>e[0]),datasets:[{data:topOrgs.map(e=>e[1]),backgroundColor:topOrgs.map(e=>TARGETS.includes(e[0])?'#C0392B':'#1A1A2E'),borderWidth:0}]},
-    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{font:{size:10}}}}}
+  // Pipeline tiers donut
+  dc('cPTiers');
+  CHARTS['cPTiers']=new Chart(document.getElementById('cPTiers'),{
+    type:'doughnut',
+    data:{labels:['Tier 1','Tier 2','Tier 3','Tier 4'],datasets:[{data:[tiers[1],tiers[2],tiers[3],tiers[4]],backgroundColor:['#27500A','#B7770D','#0C447C','#D3D1C7'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'50%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.label+': '+ctx.raw+' accounts'}}},onClick:(e,els)=>{if(els.length)showPage('pipeline',document.querySelector('[onclick*="pipeline"]'));}}
   });
+}
 
-  const targetAttendees = {};
-  attended.forEach(r => {
-    const org = canon(r['Organization']||'');
-    if (TARGETS.includes(org)) {
-      if (!targetAttendees[org]) targetAttendees[org] = {names:[], events:new Set()};
-      const name = ((r['First_Name']||r['First Name']||'')+' '+(r['Last_Name']||r['Last Name']||'')).trim();
-      if (name && !targetAttendees[org].names.includes(name)) targetAttendees[org].names.push(name);
-      targetAttendees[org].events.add(r['Event_Name']||r['Event Name']||'');
+// ── RENDER: MEMBERSHIP ───────────────────────────────────────────────────────
+function renderMembership(){
+  const am=activeMembers();
+  if(!am.length){document.getElementById('mem-metrics').innerHTML=metric('Status','Upload CCR','to see membership data');return;}
+  const corp=am.filter(r=>{const sp=String(getF(r,'Promo Code Sponsor','PromoCodeSponsor')||'');return sp&&sp!=='nan';});
+  const self=am.length-corp.length;
+  const now=new Date();
+  const expiring=am.filter(r=>{
+    const exp=String(getF(r,'Expiration Year/Month','Expiration Month','ExpirationMonth')||'');
+    if(!exp||exp==='nan')return false;
+    try{const d=new Date(exp.replace(/-/g,'/'));const diff=(d-now)/(864e5);return diff>=-5&&diff<=60;}catch(e){return false;}
+  });
+  const empCnt={};
+  am.forEach(r=>{const e=canon(getF(r,'Employer_Name','Employer Name','Organization'));if(e)empCnt[e]=(empCnt[e]||0)+1;});
+  const topEmps=Object.entries(empCnt).sort((a,b)=>b[1]-a[1]).slice(0,15);
+
+  document.getElementById('mem-metrics').innerHTML=[
+    metric('Active members',am.length,'current snapshot','success'),
+    metric('Corporate-sponsored',corp.length,Math.round(corp.length/am.length*100)+'% of active'),
+    metric('Self-paid',self,Math.round(self/am.length*100)+'% of active'),
+    metric('Expiring 60 days',expiring.length,'Apr–Jun 2026',expiring.length>5?'warn':''),
+  ].join('');
+
+  dc('cSplit');
+  document.getElementById('split-legend').innerHTML=`<span class="legend-item"><span class="legend-dot" style="background:#1A1A2E"></span>Corporate-sponsored ${corp.length} (${Math.round(corp.length/am.length*100)}%)</span><span class="legend-item"><span class="legend-dot" style="background:#0F6E56"></span>Self-paid ${self} (${Math.round(self/am.length*100)}%)</span>`;
+  CHARTS['cSplit']=new Chart(document.getElementById('cSplit'),{type:'doughnut',data:{labels:['Corporate-sponsored','Self-paid'],datasets:[{data:[corp.length,self],backgroundColor:['#1A1A2E','#0F6E56'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});
+
+  dc('cEmps');
+  CHARTS['cEmps']=new Chart(document.getElementById('cEmps'),{type:'bar',data:{labels:topEmps.map(e=>e[0]),datasets:[{data:topEmps.map(e=>e[1]),backgroundColor:topEmps.map(e=>TARGET_NAMES.includes(e[0])?'#C0392B':'#1A1A2E'),borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{font:{size:10}}},x:{ticks:{stepSize:1}}}}});
+
+  // Corp ticket non-sponsors
+  const ctBuyers={};
+  am.forEach(r=>{const sp=String(getF(r,'Promo Code Sponsor','PromoCodeSponsor')||'').trim();if(sp&&sp!=='nan'&&!CURRENT_SPONSOR_NAMES.some(s=>sp.toLowerCase().includes(s.substring(0,5))))ctBuyers[sp]=(ctBuyers[sp]||0)+1;});
+  const nonSp=Object.entries(ctBuyers).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('corp-ticket-tbl').innerHTML=nonSp.length
+    ?`<table class="tbl"><thead><tr><th>Organization</th><th>Active members funded</th><th>Why this matters</th></tr></thead><tbody>${nonSp.map(([sp,cnt])=>`<tr><td><strong>${sp}</strong></td><td>${cnt}</td><td style="font-size:10px;color:var(--text2)">Already investing in Ascend — open sponsor conversation</td></tr>`).join('')}</tbody></table>`
+    :'<div class="empty">No non-sponsor corp ticket buyers found — or CCR not yet loaded</div>';
+
+  document.getElementById('expiring-tbl').innerHTML=expiring.length
+    ?`<table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Employer</th><th>Expires</th></tr></thead><tbody>${expiring.slice(0,25).map(r=>`<tr><td>${getF(r,'First_Name','First Name')} ${getF(r,'Last_Name','Last Name')}</td><td style="color:var(--blue);font-size:10px">${getF(r,'Email_Address','Email Address','Email')}</td><td>${canon(getF(r,'Employer_Name','Employer Name','Organization'))}</td><td><span class="badge b-amber">${getF(r,'Expiration Year/Month','Expiration Month')}</span></td></tr>`).join('')}</tbody></table>`
+    :'<div class="empty">No members expiring within 60 days</div>';
+}
+
+// ── RENDER: EVENTS ───────────────────────────────────────────────────────────
+function renderEvents(){
+  const att=allAttended();
+  if(!att.length){document.getElementById('ev-metrics').innerHTML=metric('Status','Upload Check-In App','to see event data');return;}
+
+  const uniqueEvs=[...new Set(att.map(r=>getF(r,'Event_Name','Event Name','event_name')).filter(Boolean))];
+  const uniquePeople=new Set(att.map(r=>String(getF(r,'Email','email')||'').toLowerCase()).filter(Boolean)).size;
+
+  document.getElementById('ev-metrics').innerHTML=[
+    metric('Events in dataset',uniqueEvs.length,'all events'),
+    metric('Total check-ins',att.length,'confirmed attended'),
+    metric('Unique attendees',uniquePeople,'distinct individuals'),
+    metric('Avg per event',Math.round(att.length/Math.max(uniqueEvs.length,1)),'attendees per event'),
+  ].join('');
+
+  // Per-event chart
+  const evMap={};
+  att.forEach(r=>{const ev=getF(r,'Event_Name','Event Name','event_name');if(ev){evMap[ev]=(evMap[ev]||0)+1;}});
+  const evLabels=Object.keys(evMap).map(e=>e.replace("Ascend Midwest: ",'').replace('Ascend Midwest ','').substring(0,28));
+
+  dc('cEvAtt');
+  CHARTS['cEvAtt']=new Chart(document.getElementById('cEvAtt'),{type:'bar',data:{labels:evLabels,datasets:[{label:'Attended',data:Object.values(evMap),backgroundColor:'#1A1A2E',borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9},maxRotation:45,autoSkip:false}},y:{ticks:{stepSize:5}}}}});
+
+  // Top orgs
+  const orgCnt={};
+  att.forEach(r=>{const org=canon(getF(r,'Organization','organization'));if(org)orgCnt[org]=(orgCnt[org]||0)+1;});
+  const topOrgs=Object.entries(orgCnt).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  dc('cEvOrgs');
+  CHARTS['cEvOrgs']=new Chart(document.getElementById('cEvOrgs'),{type:'bar',data:{labels:topOrgs.map(e=>e[0]),datasets:[{data:topOrgs.map(e=>e[1]),backgroundColor:topOrgs.map(e=>TARGET_NAMES.includes(e[0])?'#C0392B':'#1A1A2E'),borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{font:{size:10}}}}}});
+
+  // Target accounts at events
+  const targetAtt={};
+  att.forEach(r=>{
+    const org=canon(getF(r,'Organization','organization'));
+    const match=TARGET_NAMES.find(t=>org.toLowerCase().includes(t.toLowerCase().substring(0,7))||t.toLowerCase().includes(org.toLowerCase().substring(0,7)));
+    if(match){
+      if(!targetAtt[match])targetAtt[match]={people:[],events:new Set()};
+      const name=`${getF(r,'First_Name','First Name')} ${getF(r,'Last_Name','Last Name')}`.trim();
+      if(name&&!targetAtt[match].people.includes(name))targetAtt[match].people.push(name);
+      targetAtt[match].events.add(getF(r,'Event_Name','Event Name','event_name'));
+    }
+  });
+  document.getElementById('target-ev-tbl').innerHTML=Object.keys(targetAtt).length
+    ?`<table class="tbl"><thead><tr><th>Company</th><th>Attendees</th><th>Events</th></tr></thead><tbody>${Object.entries(targetAtt).map(([co,d])=>`<tr><td><strong>${co}</strong></td><td style="font-size:10px">${d.people.slice(0,3).join(', ')}${d.people.length>3?` +${d.people.length-3} more`:''}</td><td><span class="badge b-green">${d.events.size}</span></td></tr>`).join('')}</tbody></table>`
+    :'<div class="empty" style="padding:1rem;font-size:11px">No target account attendees found yet</div>';
+}
+
+// ── RENDER: SPONSORSHIP ──────────────────────────────────────────────────────
+function tierBadge(tier){const c={'Gold':'b-green','Jade':'b-purple','Silver':'b-gray','Bronze':'b-amber','Supporter':'b-blue'};return`<span class="badge ${c[tier]||'b-gray'}">${tier}</span>`;}
+
+function renderSponsorship(){
+  const totalRev=SPONSORS.reduce((s,r)=>s+r.amount,0);
+  const totalVal=SPONSORS.filter(s=>s.value>0).reduce((s,r)=>s+r.value,0);
+  const unpaid=SPONSORS.filter(s=>s.paid!=='Paid');
+  const over=SPONSORS.filter(s=>s.value>0&&s.delta<0);
+
+  document.getElementById('sp-metrics').innerHTML=[
+    metric('Total contracted','$'+totalRev.toLocaleString(),'16 sponsors · 2026'),
+    metric('Est. value delivered','$'+totalVal.toLocaleString(),'on sponsors with data'),
+    metric('Payment pending',unpaid.length,unpaid.map(s=>s.name).join(', ')||'none',unpaid.length?'warn':''),
+    metric('Value shortfall',over.length,over.map(s=>s.name).join(', ')||'none',over.length?'danger':''),
+  ].join('');
+
+  // Full sponsor table — clickable rows
+  document.getElementById('sp-tbl').innerHTML=`<table class="tbl"><thead><tr><th>Sponsor</th><th>Tier</th><th>Amount</th><th>Expires</th><th>Days left</th><th>Payment</th><th>Value delivered</th><th>Contact</th></tr></thead><tbody>${SPONSORS.map(s=>`<tr style="cursor:pointer" title="Click to see details"><td><strong>${s.name}</strong></td><td>${tierBadge(s.tier)}</td><td>$${s.amount.toLocaleString()}</td><td>${s.expires}</td><td><span class="badge ${s.daysLeft<=30?'b-red':s.daysLeft<=60?'b-amber':'b-blue'}">${s.daysLeft}d</span></td><td><span class="badge ${s.paid==='Paid'?'b-green':'b-red'}">${s.paid}</span></td><td>${s.value>0?'$'+s.value.toLocaleString():'—'}</td><td style="font-size:10px;color:var(--blue)">${s.contact}</td></tr>`).join('')}</tbody></table>`;
+
+  // Value chart
+  const hasVal=SPONSORS.filter(s=>s.value>0);
+  dc('cSpValue');
+  CHARTS['cSpValue']=new Chart(document.getElementById('cSpValue'),{type:'bar',data:{labels:hasVal.map(s=>s.name),datasets:[{label:'Contracted',data:hasVal.map(s=>s.amount),backgroundColor:'#1A1A2E',borderWidth:0},{label:'Value delivered',data:hasVal.map(s=>s.value),backgroundColor:'#0F6E56',borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'$'+ctx.raw.toLocaleString()}}},scales:{x:{ticks:{font:{size:9},maxRotation:45,autoSkip:false}},y:{ticks:{callback:v=>'$'+(v/1000)+'k'}}}}});
+
+  // Tier breakdown
+  const tg={};SPONSORS.forEach(s=>{tg[s.tier]=(tg[s.tier]||0)+s.amount;});
+  const tc={'Gold':'#F39C12','Jade':'#534AB7','Silver':'#7F8C8D','Bronze':'#A04000','Supporter':'#185FA5'};
+  dc('cSpTier');
+  CHARTS['cSpTier']=new Chart(document.getElementById('cSpTier'),{type:'doughnut',data:{labels:Object.keys(tg),datasets:[{data:Object.values(tg),backgroundColor:Object.keys(tg).map(t=>tc[t]||'#ccc'),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'50%',plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:ctx=>ctx.label+': $'+ctx.raw.toLocaleString()}}}}});
+}
+
+// ── RENDER: PIPELINE ─────────────────────────────────────────────────────────
+function renderPipeline(){
+  const am=activeMembers();
+  const att=allAttended();
+
+  const membersByTarget={},attByTarget={},peopleByTarget={};
+  TARGETS.forEach(t=>{membersByTarget[t.name]=0;attByTarget[t.name]=0;peopleByTarget[t.name]=[];});
+
+  am.forEach(r=>{
+    const emp=canon(getF(r,'Employer_Name','Employer Name','Organization'));
+    const match=TARGETS.find(t=>emp.toLowerCase().includes(t.name.toLowerCase().substring(0,7))||t.name.toLowerCase().includes(emp.toLowerCase().substring(0,7)));
+    if(match)membersByTarget[match.name]++;
+  });
+  att.forEach(r=>{
+    const org=canon(getF(r,'Organization','organization'));
+    const match=TARGETS.find(t=>org.toLowerCase().includes(t.name.toLowerCase().substring(0,7))||t.name.toLowerCase().includes(org.toLowerCase().substring(0,7)));
+    if(match){
+      attByTarget[match.name]++;
+      const name=`${getF(r,'First_Name','First Name')} ${getF(r,'Last_Name','Last Name')}`.trim();
+      if(name&&!peopleByTarget[match.name].includes(name))peopleByTarget[match.name].push(name);
     }
   });
 
-  document.getElementById('target-events-table').innerHTML = Object.keys(targetAttendees).length
-    ? `<table class="alert-table"><thead><tr><th>Target Company</th><th>Attendees</th><th>Events</th></tr></thead><tbody>${Object.entries(targetAttendees).map(([co,d])=>`<tr><td><strong>${co}</strong></td><td>${d.names.slice(0,3).join(', ')}${d.names.length>3?' +more':''}</td><td><span class="badge badge-green">${d.events.size}</span></td></tr>`).join('')}</tbody></table>`
-    : '<div class="empty" style="padding:1rem;font-size:12px">No target account attendees found in event data</div>';
-}
+  const tiers={1:0,2:0,3:0,4:0};
+  const tierOf=(t)=>{
+    const m=membersByTarget[t.name]||0,a=attByTarget[t.name]||0;
+    const hasContact=t.contact||t.notes;
+    if(m>=1&&a>=2)return'Tier 1';
+    if(m>=1||a>=2)return'Tier 2';
+    if(hasContact||m>0||a>0)return'Tier 3';
+    return'Tier 4';
+  };
+  TARGETS.forEach(t=>{tiers[parseInt(tierOf(t).replace('Tier ',''))]++;});
+  const covered=tiers[1]+tiers[2]+tiers[3];
 
-function renderSponsorship() {
-  const totalRev = SPONSOR_DATA.reduce((s,r)=>s+r.amount,0);
-  const totalVal = SPONSOR_DATA.reduce((s,r)=>s+r.value,0);
-  const unpaid = SPONSOR_DATA.filter(s=>s.paid==='Unpaid'||s.paid==='Paid to National');
-  const overDelivered = SPONSOR_DATA.filter(s=>s.delta<0 && s.value>0);
-
-  document.getElementById('sponsor-metrics').innerHTML = [
-    metric('Total contracted', '$'+totalRev.toLocaleString(), '16 sponsors, 2026'),
-    metric('Total value delivered', '$'+(totalVal||0).toLocaleString(), 'estimated benefit value'),
-    metric('Payment pending', unpaid.length, unpaid.map(s=>s.name).join(', ') || 'none', unpaid.length?'warn':''),
-    metric('Under-delivered', overDelivered.length, overDelivered.map(s=>s.name).join(', ')||'none', overDelivered.length?'warn':''),
+  document.getElementById('pp-metrics').innerHTML=[
+    metric('Coverage rate',Math.round(covered/TARGETS.length*100)+'%',covered+' of 26 accounts touched',covered>6?'success':'warn'),
+    metric('Tier 1 — High',tiers[1],'member + events','success'),
+    metric('Tier 2 — Warm',tiers[2],'member or events','warn'),
+    metric('Tier 4 — Cold',tiers[4],'no connection yet',''),
   ].join('');
 
-  const hasVal = SPONSOR_DATA.filter(s=>s.value>0);
-  destroyChart('chartValue');
-  CHARTS['chartValue'] = new Chart(document.getElementById('chartValue'), {
-    type:'bar',
-    data:{
-      labels:hasVal.map(s=>s.name),
-      datasets:[
-        {label:'Contracted ($)',data:hasVal.map(s=>s.amount),backgroundColor:'#1A1A2E',borderWidth:0},
-        {label:'Value delivered ($)',data:hasVal.map(s=>s.value),backgroundColor:'#0F6E56',borderWidth:0}
-      ]
-    },
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9},maxRotation:45}},y:{ticks:{callback:v=>'$'+(v/1000)+'k'}}}}
-  });
+  const warm=TARGETS.filter(t=>tierOf(t)==='Tier 1'||tierOf(t)==='Tier 2');
+  const tierBadgePL=(tier)=>{const c={'Tier 1':'b-green','Tier 2':'b-amber','Tier 3':'b-blue','Tier 4':'b-gray'};return`<span class="badge ${c[tier]||'b-gray'}">${tier}</span>`;};
 
-  const tierColors = {Gold:'#F39C12',Jade:'#0F6E56',Silver:'#7F8C8D',Bronze:'#A04000',Supporter:'#2471A3'};
-  document.getElementById('sponsor-table').innerHTML = `<table class="alert-table"><thead><tr><th>Sponsor</th><th>Tier</th><th>Amount</th><th>Expires</th><th>Status</th><th>Contact</th></tr></thead><tbody>${SPONSOR_DATA.map(s=>`<tr><td><strong>${s.name}</strong></td><td><span class="badge" style="background:${tierColors[s.tier]}20;color:${tierColors[s.tier]}">${s.tier}</span></td><td>$${s.amount.toLocaleString()}</td><td>${s.expires}</td><td><span class="badge ${s.paid==='Unpaid'?'badge-red':'badge-green'}">${s.paid}</span></td><td>${s.contact}</td></tr>`).join('')}</tbody></table>`;
-}
+  document.getElementById('warm-tbl').innerHTML=warm.length
+    ?`<table class="tbl"><thead><tr><th>F-Rank</th><th>Company</th><th>Tier</th><th>Members</th><th>Event attendees</th><th>Known people</th><th>Contact / Notes</th></tr></thead><tbody>${warm.map(t=>`<tr><td style="font-size:10px;color:var(--text3)">${t.rank}</td><td><strong>${t.name}</strong></td><td>${tierBadgePL(tierOf(t))}</td><td>${membersByTarget[t.name]||'—'}</td><td>${attByTarget[t.name]||'—'}</td><td style="font-size:10px">${peopleByTarget[t.name].join(', ')||'—'}</td><td style="font-size:10px;color:var(--text2)">${t.notes||''}</td></tr>`).join('')}</tbody></table>`
+    :'<div class="empty">Upload CCR and events files to calculate tiers</div>';
 
-function renderPipeline() {
-  const active = getActiveMembers();
-  const attended = getAttended();
-
-  const membersByTarget = {};
-  const attendeesByTarget = {};
-  TARGETS.forEach(t => { membersByTarget[t]=0; attendeesByTarget[t]=0; });
-
-  active.forEach(r => {
-    const emp = canon(r['Employer_Name']||r['Employer Name']||'');
-    if (TARGETS.includes(emp)) membersByTarget[emp]++;
-  });
-  attended.forEach(r => {
-    const org = canon(r['Organization']||'');
-    if (TARGETS.includes(org)) attendeesByTarget[org]++;
-  });
-
-  const tierMap = {};
-  TARGETS.forEach(t => {
-    const m = membersByTarget[t]||0, a = attendeesByTarget[t]||0;
-    if (m>=2||a>=4) tierMap[t]='Tier 1';
-    else if (m>=1||a>=2) tierMap[t]='Tier 2';
-    else if (m>0||a>0) tierMap[t]='Tier 3';
-    else tierMap[t]='Tier 4';
-  });
-
-  const tierCounts = {1:0,2:0,3:0,4:0};
-  Object.values(tierMap).forEach(t => tierCounts[parseInt(t.split(' ')[1])]++);
-  const covered = tierCounts[1]+tierCounts[2]+tierCounts[3];
-
-  document.getElementById('pipeline-metrics').innerHTML = [
-    metric('Pipeline coverage', Math.round(covered/TARGETS.length*100)+'%', covered+' of '+TARGETS.length+' accounts touched', covered>5?'success':'warn'),
-    metric('Tier 1 — High', tierCounts[1], 'active member + events', 'success'),
-    metric('Tier 2 — Warm', tierCounts[2], 'member or attendees', 'warn'),
-    metric('Tier 4 — Cold', tierCounts[4], 'no connection yet', ''),
-  ].join('');
-
-  destroyChart('chartPipelineTiers');
-  CHARTS['chartPipelineTiers'] = new Chart(document.getElementById('chartPipelineTiers'), {
-    type:'doughnut',
-    data:{
-      labels:['Tier 1 — High','Tier 2 — Warm','Tier 3 — Contact','Tier 4 — Cold'],
-      datasets:[{data:[tierCounts[1],tierCounts[2],tierCounts[3],tierCounts[4]],backgroundColor:['#27500A','#B7770D','#0C447C','#D3D1C7'],borderWidth:0}]
-    },
-    options:{responsive:true,maintainAspectRatio:false,cutout:'50%',plugins:{legend:{display:false}}}
-  });
-
-  const warmAccounts = TARGETS.filter(t=>tierMap[t]==='Tier 1'||tierMap[t]==='Tier 2');
-  document.getElementById('warm-table').innerHTML = warmAccounts.length
-    ? `<table class="alert-table"><thead><tr><th>Company</th><th>Tier</th><th>Members</th><th>Attendees</th></tr></thead><tbody>${warmAccounts.map(t=>`<tr><td><strong>${t}</strong></td><td><span class="badge ${tierMap[t]==='Tier 1'?'badge-green':'badge-amber'}">${tierMap[t]}</span></td><td>${membersByTarget[t]||'—'}</td><td>${attendeesByTarget[t]||'—'}</td></tr>`).join('')}</tbody></table>`
-    : '<div class="empty" style="padding:1rem;font-size:12px">Upload CCR and events to calculate tiers</div>';
-
-  document.getElementById('pipeline-table').innerHTML = `<table class="alert-table"><thead><tr><th>Company</th><th>Tier</th><th>Active Members</th><th>2025 Attendees</th><th>Next Step</th></tr></thead><tbody>${TARGETS.map(t=>{
-    const tier=tierMap[t]; const m=membersByTarget[t]; const a=attendeesByTarget[t];
-    const next = tier==='Tier 1'?'Open sponsor conversation' : tier==='Tier 2'?'Leverage member as champion' : tier==='Tier 3'?'Follow up existing contact' : 'LinkedIn research — find ERG lead';
-    return `<tr><td><strong>${t}</strong></td><td><span class="badge ${tier==='Tier 1'?'badge-green':tier==='Tier 2'?'badge-amber':tier==='Tier 3'?'badge-blue':'badge-gray'}">${tier}</span></td><td>${m||'—'}</td><td>${a||'—'}</td><td style="font-size:11px;color:var(--text2)">${next}</td></tr>`;
+  document.getElementById('full-pipeline-tbl').innerHTML=`<table class="tbl"><thead><tr><th>F-Rank</th><th>Company</th><th>Industry</th><th>Tier</th><th>Members</th><th>Event att.</th><th>Contact</th><th>Next step</th></tr></thead><tbody>${TARGETS.map(t=>{
+    const tier=tierOf(t);const m=membersByTarget[t.name];const a=attByTarget[t.name];
+    const next=tier==='Tier 1'?'Open sponsor conversation':tier==='Tier 2'?'Leverage member as champion':tier==='Tier 3'?'Follow up existing contact':'LinkedIn — find ERG/DEI lead';
+    return`<tr><td style="font-size:10px;color:var(--text3)">${t.rank}</td><td><strong>${t.name}</strong></td><td style="font-size:10px;color:var(--text2)">${t.industry}</td><td>${tierBadgePL(tier)}</td><td>${m||'—'}</td><td>${a||'—'}</td><td style="font-size:10px;color:var(--blue)">${t.contact||''}</td><td style="font-size:10px;color:var(--text2)">${next}</td></tr>`;
   }).join('')}</tbody></table>`;
 }
 
-if (!loadFromStorage()) { renderSummary(); }
+// ── INIT ─────────────────────────────────────────────────────────────────────
+document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+if(!restore())renderSummary();
 </script>
 </body>
 </html>
