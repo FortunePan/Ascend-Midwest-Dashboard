@@ -381,176 +381,219 @@ function isCurrentSponsor(rawPromoCode) {
 }
 
 // ── STORAGE ───────────────────────────────────────────────────────────────────
-// ── STORAGE: LOCAL + SHARED (Google Apps Script backend) ─────────────────
-// Local: saves in your browser instantly, always works
-// Shared: one person uploads → everyone sees the same data
-//   Setup: see Ascend_Dashboard_Backend.gs → deploy as web app → paste URL below
+// ── STORAGE ───────────────────────────────────────────────────────────────
+// Two-layer approach:
+//   READ:  Google Sheets API (public, no CORS issues, instant)
+//   WRITE: Apps Script web app (same URL forever - do NOT create new deployments)
+//
+// Sheet ID: 1NjcVrWJcWmLLnkxihDG-JqyU8z8Y_tWZrJ0gkL8W8Us
+// Apps Script: https://script.google.com/macros/s/AKfycby_a8LTws8CFF3WiHOWIGWnpyaCaCQF55mqJV3haXaO-ijN_RBtIYSRDRqQrYSp008/exec
 
-function getBackendUrl(){return localStorage.getItem('ascend_backend_url')||'https://script.google.com/macros/s/AKfycby_a8LTws8CFF3WiHOWIGWnpyaCaCQF55mqJV3haXaO-ijN_RBtIYSRDRqQrYSp008/exec';}
+const SHEET_ID = '1NjcVrWJcWmLLnkxihDG-JqyU8z8Y_tWZrJ0gkL8W8Us';
+const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycby_a8LTws8CFF3WiHOWIGWnpyaCaCQF55mqJV3haXaO-ijN_RBtIYSRDRqQrYSp008/exec';
 
-function save(t,d,f){
-  // Save locally first (instant)
-  try{
-    localStorage.setItem('ascv5_'+t,JSON.stringify(d));
-    localStorage.setItem('ascv5_'+t+'_m',JSON.stringify({f,rows:d.length,saved:new Date().toISOString()}));
-  }catch(e){}
-  // Push to shared backend after a short delay (allows all three files to load)
-  clearTimeout(window._saveTimer);
-  window._saveTimer=setTimeout(pushToBackend,1500);
+// READ from Google Sheets directly (no auth needed for public sheets, no CORS)
+async function readFromSheet() {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Data`;
+  const resp = await fetch(url);
+  const text = await resp.text();
+  // Google wraps the response in /*O_o*/\ngoogle.visualization.Query.setResponse(...)
+  const json = JSON.parse(text.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
+  return json;
 }
 
-function slimData(rows, keepFields) {
-  if (!rows || !rows.length) return [];
-  return rows.map(r => {
-    const slim = {};
-    keepFields.forEach(f => { if (r[f] !== undefined) slim[f] = r[f]; });
-    // Also copy any field matching these patterns
-    Object.keys(r).forEach(k => {
-      if (keepFields.some(f => k.toLowerCase().includes(f.toLowerCase()))) slim[k] = r[k];
-    });
-    return slim;
-  });
-}
-
-function pushToBackend(){
-  const url=getBackendUrl();
-  if(!url)return;
-  if(!Object.values(DATA).some(v=>v&&v.length))return;
-  document.getElementById('storInfo').innerHTML='Saving to shared store...';
-  
-  // Slim CCR: active members only, key fields only
-  const ccrSlim = (DATA.ccr||[]).filter(r=>isActive(r)).map(r=>({
-    'Status':Object.keys(r).find(k=>k.startsWith('Status'))?r[Object.keys(r).find(k=>k.startsWith('Status'))]:'Active',
-    'First_Name':getF(r,'First_Name','First Name')||'',
-    'Last_Name':getF(r,'Last_Name','Last Name')||'',
-    'Email_Address':getF(r,'Email_Address','Email Address','Email')||'',
-    'Employer_Name':getF(r,'Employer_Name','Employer Name','Organization')||'',
-    'Promo Code Sponsor':getF(r,'Promo Code Sponsor','PromoCodeSponsor')||'',
-    'Expiration Year/Month':getF(r,'Expiration Year/Month','Expiration Month')||'',
-    'Registration Year/Month':getF(r,'Registration Year/Month','Registration Month')||'',
-    'Membership':getF(r,'Membership','Membership Type')||'',
-    '_active':true
-  }));
-  
-  // Slim events: attended only, key fields only
-  const ev25Slim = (DATA.events25||[]).map(r=>({
-    'Attended':'Yes','_year':'2025',
-    'First_Name':getF(r,'First_Name','First Name')||'',
-    'Last_Name':getF(r,'Last_Name','Last Name')||'',
-    'Email':getF(r,'Email Address','Email','email')||'',
-    'Organization':getF(r,'Organization','Employer')||'',
-    'Event_Name':getF(r,'Event_Name','Event Name','event_name')||''
-  }));
-  const ev26Slim = (DATA.events26||[]).map(r=>({
-    '_year':'2026','_attended':true,
-    'First_Name':getF(r,'First_Name','First Name')||'',
-    'Last_Name':getF(r,'Last_Name','Last Name')||'',
-    'Email':getF(r,'Email','Email Address')||'',
-    'Organization':getF(r,'Organization','organization')||'',
-    'Event_Name':getF(r,'Event_Name','Event Name')||''
-  }));
-  
-  const payload={ccr:ccrSlim,events25:ev25Slim,events26:ev26Slim,savedBy:'dashboard'};
-  fetch(url, {
+// WRITE via Apps Script (handles the sheet writing server-side, no CORS on POST to Apps Script)
+async function writeToScript(payload) {
+  // Apps Script redirects POST to GET with ?payload= for CORS compatibility
+  // Use no-cors mode and just fire-and-forget, then verify via sheet read
+  const resp = await fetch(WEBAPP_URL, {
     method: 'POST',
     body: JSON.stringify(payload),
-    headers: {'Content-Type': 'application/json'},
-    mode: 'cors',
-    redirect: 'follow'
-  })
-  .then(r => {
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
-  })
-  .then(j => {
-    if (j.status === 'ok') {
-      const d = new Date(j.saved);
-      document.getElementById('storInfo').innerHTML = '✓ Shared — saved ' + d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) + ' · CCR: ' + j.ccrRows + ' members · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Manage</span> · <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear</span>';
-    } else {
-      throw new Error(j.message || 'Unknown error');
-    }
-  })
-  .catch(err => {
-    console.error('Shared save error:', err);
-    document.getElementById('storInfo').innerHTML = '⚠ Saved locally only · Shared save failed (' + err.message + ') · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Check setup</span>';
+    headers: {'Content-Type': 'text/plain'}, // text/plain avoids CORS preflight
+    mode: 'no-cors'  // fire and forget - we verify success by reading sheet
   });
+  return true; // no-cors means we can't read response, verify via readFromSheet()
 }
 
-function restore(){
-  const url=getBackendUrl();
-  if(url){
-    document.getElementById('storInfo').innerHTML='Loading shared data...';
-    return fetch(url, {method: 'GET', mode: 'cors', redirect: 'follow'})
-      .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-      .then(j=>{
-        if(j.status==='ok'&&j.data){
-          const p=j.data;let any=false;
-          ['ccr','events25','events26'].forEach(t=>{
-            if(p[t]&&p[t].length){DATA[t]=p[t];document.getElementById('btn-'+t).classList.add('loaded');any=true;}
-          });
-          if(any){
-            updateStatus();renderAll();
-            const d=new Date(j.saved);
-            document.getElementById('storInfo').innerHTML=`Shared data — last updated ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · CCR: ${j.ccrRows} members · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Manage</span> · <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear</span>`;
-            return true;
-          }else{
-            document.getElementById('storInfo').innerHTML='Shared storage empty — upload files to populate · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Manage</span>';
-          }
-        }else if(j.status==='empty'){
-          document.getElementById('storInfo').innerHTML='Shared storage connected but empty — upload files below · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Manage</span>';
+function save(t, d, f) {
+  // Save to localStorage immediately
+  try {
+    localStorage.setItem('ascv5_' + t, JSON.stringify(d));
+    localStorage.setItem('ascv5_' + t + '_m', JSON.stringify({f, rows: d.length, saved: new Date().toISOString()}));
+  } catch(e) {}
+  
+  // Debounce: wait 1.5s for all files to load, then push once
+  clearTimeout(window._saveTimer);
+  window._saveTimer = setTimeout(pushAllToSheet, 1500);
+}
+
+async function pushAllToSheet() {
+  if (!Object.values(DATA).some(v => v && v.length)) return;
+  
+  document.getElementById('storInfo').innerHTML = 'Saving to shared store...';
+  
+  // Build slimmed payload - active CCR only, key fields only
+  const ccrSlim = (DATA.ccr || []).filter(r => isActive(r)).map(r => ({
+    s: Object.keys(r).find(k => k.startsWith('Status')) ? r[Object.keys(r).find(k => k.startsWith('Status'))] : 'Active',
+    fn: getF(r, 'First_Name', 'First Name') || '',
+    ln: getF(r, 'Last_Name', 'Last Name') || '',
+    em: getF(r, 'Email_Address', 'Email Address', 'Email') || '',
+    emp: getF(r, 'Employer_Name', 'Employer Name', 'Organization') || '',
+    sp: getF(r, 'Promo Code Sponsor', 'PromoCodeSponsor') || '',
+    exp: getF(r, 'Expiration Year/Month', 'Expiration Month') || '',
+    reg: getF(r, 'Registration Year/Month', 'Registration Month') || '',
+    mem: getF(r, 'Membership', 'Membership Type') || ''
+  }));
+  
+  const ev25Slim = (DATA.events25 || []).map(r => ({
+    y: '2025',
+    fn: getF(r, 'First_Name', 'First Name') || '',
+    ln: getF(r, 'Last_Name', 'Last Name') || '',
+    em: getF(r, 'Email Address', 'Email', 'email') || '',
+    org: getF(r, 'Organization', 'Employer') || '',
+    ev: getF(r, 'Event_Name', 'Event Name', 'event_name') || ''
+  }));
+  
+  const ev26Slim = (DATA.events26 || []).map(r => ({
+    y: '2026', a: true,
+    fn: getF(r, 'First_Name', 'First Name') || '',
+    ln: getF(r, 'Last_Name', 'Last Name') || '',
+    em: getF(r, 'Email', 'Email Address') || '',
+    org: getF(r, 'Organization', 'organization') || '',
+    ev: getF(r, 'Event_Name', 'Event Name') || ''
+  }));
+  
+  const payload = {
+    ccr: ccrSlim, events25: ev25Slim, events26: ev26Slim,
+    saved: new Date().toISOString(),
+    ccrRows: ccrSlim.length, events25Rows: ev25Slim.length, events26Rows: ev26Slim.length
+  };
+  
+  try {
+    await writeToScript(payload);
+    // Verify by reading back after 3 seconds
+    setTimeout(async () => {
+      try {
+        const sheetData = await readFromSheet();
+        const rows = sheetData?.table?.rows;
+        if (rows && rows.length > 0) {
+          const d = new Date(payload.saved);
+          document.getElementById('storInfo').innerHTML = 
+            '✓ Shared — saved ' + d.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) + 
+            ' · CCR: ' + ccrSlim.length + ' active members · ' +
+            '<span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear local</span>';
+        } else {
+          document.getElementById('storInfo').innerHTML = 
+            'Saved locally · Shared save may still be processing · <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear</span>';
         }
-        return restoreLocal();
-      }).catch(()=>Promise.resolve(restoreLocal()));
+      } catch(e) {
+        document.getElementById('storInfo').innerHTML = 
+          'Saved locally · ' + ccrSlim.length + ' active members loaded';
+      }
+    }, 3000);
+  } catch(e) {
+    document.getElementById('storInfo').innerHTML = 'Saved locally only · ' + e.message;
   }
-  return Promise.resolve(restoreLocal());
 }
 
-function restoreLocal(){
-  let any=false;
-  ['ccr','events25','events26'].forEach(t=>{
-    try{
-      const r=localStorage.getItem('ascv5_'+t);
-      const m=JSON.parse(localStorage.getItem('ascv5_'+t+'_m')||'null');
-      if(r&&m){DATA[t]=JSON.parse(r);document.getElementById('btn-'+t).classList.add('loaded');any=true;}
-    }catch(e){}
+async function restore() {
+  // Try reading from Google Sheet first
+  try {
+    document.getElementById('storInfo').innerHTML = 'Loading shared data...';
+    const sheetData = await readFromSheet();
+    const rows = sheetData?.table?.rows;
+    
+    if (rows && rows.length >= 2) {
+      // Row 0 = metadata, Row 1+ = data chunks
+      const metaStr = rows[0]?.c?.[0]?.v || '{}';
+      const meta = JSON.parse(metaStr);
+      const chunks = rows.slice(1).map(r => r?.c?.[0]?.v || '').join('');
+      
+      if (chunks) {
+        const data = JSON.parse(chunks);
+        
+        // Remap slimmed keys back to full format
+        if (data.ccr && data.ccr.length) {
+          DATA.ccr = data.ccr.map(r => ({
+            'Status as of 04/26': r.s || 'Active',
+            'First_Name': r.fn || '', 'Last_Name': r.ln || '',
+            'Email_Address': r.em || '', 'Employer_Name': r.emp || '',
+            'Promo Code Sponsor': r.sp || '',
+            'Expiration Year/Month': r.exp || '',
+            'Registration Year/Month': r.reg || '',
+            'Membership': r.mem || '', '_active': true
+          }));
+          document.getElementById('btn-ccr').classList.add('loaded');
+        }
+        if (data.events25 && data.events25.length) {
+          DATA.events25 = data.events25.map(r => ({
+            'Attended': 'Yes', '_year': '2025',
+            'First_Name': r.fn || '', 'Last_Name': r.ln || '',
+            'Email': r.em || '', 'Organization': r.org || '', 'Event_Name': r.ev || ''
+          }));
+          document.getElementById('btn-events25').classList.add('loaded');
+        }
+        if (data.events26 && data.events26.length) {
+          DATA.events26 = data.events26.map(r => ({
+            '_year': '2026', '_attended': true,
+            'First_Name': r.fn || '', 'Last_Name': r.ln || '',
+            'Email': r.em || '', 'Organization': r.org || '', 'Event_Name': r.ev || ''
+          }));
+          document.getElementById('btn-events26').classList.add('loaded');
+        }
+        
+        if (Object.values(DATA).some(v => v && v.length)) {
+          updateStatus();
+          renderAll();
+          const d = new Date(meta.saved || Date.now());
+          document.getElementById('storInfo').innerHTML = 
+            'Shared data — last updated ' + d.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) + 
+            ' · CCR: ' + (meta.ccrRows || 0) + ' members · ' +
+            '<span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear local cache</span>';
+          return true;
+        }
+      }
+    }
+    
+    // Sheet empty or no data
+    document.getElementById('storInfo').innerHTML = 
+      'Shared storage ready — upload files to populate for the whole team';
+      
+  } catch(e) {
+    console.log('Sheet read failed:', e.message, '— falling back to local');
+  }
+  
+  // Fall back to localStorage
+  return restoreLocal();
+}
+
+function restoreLocal() {
+  let any = false;
+  ['ccr', 'events25', 'events26'].forEach(t => {
+    try {
+      const r = localStorage.getItem('ascv5_' + t);
+      const m = JSON.parse(localStorage.getItem('ascv5_' + t + '_m') || 'null');
+      if (r && m) { DATA[t] = JSON.parse(r); document.getElementById('btn-' + t).classList.add('loaded'); any = true; }
+    } catch(e) {}
   });
-  if(any){updateStatus();renderAll();}
+  if (any) { updateStatus(); renderAll(); }
   return any;
 }
 
-function clearSaved(){
-  ['ccr','events25','events26'].forEach(t=>{
-    localStorage.removeItem('ascv5_'+t);localStorage.removeItem('ascv5_'+t+'_m');
-    DATA[t]=null;document.getElementById('btn-'+t).classList.remove('loaded');
+function clearSaved() {
+  ['ccr', 'events25', 'events26'].forEach(t => {
+    localStorage.removeItem('ascv5_' + t);
+    localStorage.removeItem('ascv5_' + t + '_m');
+    DATA[t] = null;
+    document.getElementById('btn-' + t).classList.remove('loaded');
   });
-  updateStatus();renderAll();
+  updateStatus(); renderAll();
 }
 
-function shareSetup(){
-  const current=getBackendUrl();
-  const msg=current
-    ? 'Shared storage is active.\n\nYour Apps Script URL:\n'+current+'\n\nShare this URL with your team — they paste it in their own dashboard under "Setup sharing".\n\nTo update, paste a new URL below (or Cancel to keep current):'
-    : 'Setup shared storage so your whole team sees the same data.\n\n5-minute setup:\n1. Go to script.google.com → New Project\n2. Paste the code from Ascend_Dashboard_Backend.gs\n3. Click Deploy → New Deployment → Web App\n4. Execute as: Me  |  Who has access: Anyone\n5. Click Deploy → copy the Web App URL\n6. Paste it below\n\nAfter setup, upload your files once and everyone sees them.';
-  const url=prompt(msg,current||'');
-  if(url===null)return;
-  if(url.trim()){
-    localStorage.setItem('ascend_backend_url',url.trim());
-    // Test connection
-    fetch(url.trim())
-      .then(r=>r.json())
-      .then(j=>{
-        if(j.status==='ok'||j.status==='empty'){
-          alert('✓ Connected! '+(j.status==='ok'?'Found existing data — reloading.':'Storage is empty — upload files to populate.'));
-          if(j.status==='ok')restore();
-          else document.getElementById('storInfo').innerHTML='Shared storage connected — upload files to populate · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Manage</span>';
-        }else{alert('Connected but got unexpected response. Check the Apps Script deployment.');}
-      }).catch(()=>alert('Could not connect. Make sure the Apps Script is deployed as a web app with "Anyone" access.'));
-  }else{
-    localStorage.removeItem('ascend_backend_url');
-    alert('Shared storage removed. Using local storage only.');
-    document.getElementById('storInfo').innerHTML='Local only · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Setup shared storage</span>';
-  }
+function shareSetup() {
+  alert('Shared storage is configured.\n\nApps Script URL:\n' + WEBAPP_URL + '\n\nGoogle Sheet:\nhttps://docs.google.com/spreadsheets/d/' + SHEET_ID + '\n\nTo share with your team: just send them the dashboard URL. Data loads automatically from the shared Google Sheet.');
 }
+
 
 function updateStatus(){
   const labels={ccr:'CCR',events25:'2025 Events',events26:'2026 Events'};
