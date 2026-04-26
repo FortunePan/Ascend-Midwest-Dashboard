@@ -451,26 +451,37 @@ function pushToBackend(){
   }));
   
   const payload={ccr:ccrSlim,events25:ev25Slim,events26:ev26Slim,savedBy:'dashboard'};
-  fetch(url,{method:'POST',body:JSON.stringify(payload)})
-    .then(r=>r.json())
-    .then(j=>{
-      if(j.status==='ok'){
-        const d=new Date(j.saved);
-        document.getElementById('storInfo').innerHTML=`✓ Shared data saved — ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · CCR: ${j.ccrRows} members · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Manage</span> · <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear</span>`;
-      }else{
-        document.getElementById('storInfo').innerHTML='Saved locally only — shared save failed · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Setup sharing</span>';
-      }
-    }).catch(()=>{
-      document.getElementById('storInfo').innerHTML='Saved locally — <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Setup shared storage</span>';
-    });
+  fetch(url, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: {'Content-Type': 'application/json'},
+    mode: 'cors',
+    redirect: 'follow'
+  })
+  .then(r => {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
+  .then(j => {
+    if (j.status === 'ok') {
+      const d = new Date(j.saved);
+      document.getElementById('storInfo').innerHTML = '✓ Shared — saved ' + d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) + ' · CCR: ' + j.ccrRows + ' members · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Manage</span> · <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear</span>';
+    } else {
+      throw new Error(j.message || 'Unknown error');
+    }
+  })
+  .catch(err => {
+    console.error('Shared save error:', err);
+    document.getElementById('storInfo').innerHTML = '⚠ Saved locally only · Shared save failed (' + err.message + ') · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Check setup</span>';
+  });
 }
 
 function restore(){
   const url=getBackendUrl();
   if(url){
     document.getElementById('storInfo').innerHTML='Loading shared data...';
-    return fetch(url)
-      .then(r=>r.json())
+    return fetch(url, {method: 'GET', mode: 'cors', redirect: 'follow'})
+      .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
       .then(j=>{
         if(j.status==='ok'&&j.data){
           const p=j.data;let any=false;
