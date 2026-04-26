@@ -100,7 +100,7 @@ body{font-family:'Nunito','Georgia',sans-serif;background:var(--bg);color:var(--
 <div class="main">
   <div class="upload-zone" id="uploadZone">
     <div class="upload-title" style="font-family:'Playfair Display',serif;color:#171B4B;font-size:18px">Ascend Midwest — Chapter Intelligence Hub</div>
-    <div class="upload-sub">Drop each file — data stays in your browser. Both 2025 and 2026 event files supported simultaneously.</div>
+    <div class="upload-sub">Upload files once — shared automatically with your team. Both 2025 and 2026 event files supported.</div>
     <div class="file-inputs">
       <div class="file-btn" id="btn-ccr"><input type="file" accept=".xlsx,.csv" onchange="loadFile('ccr',this)"><label><div class="fdot"></div>CCR membership</label></div>
       <div class="file-btn" id="btn-events25"><input type="file" accept=".xlsx,.csv" onchange="loadFile('events25',this)"><label><div class="fdot"></div>2025 event tracker</label></div>
@@ -359,44 +359,69 @@ const SPONSORS=[
 const SP_NAMES=SPONSORS.map(s=>s.name.toLowerCase());
 
 // ── STORAGE ───────────────────────────────────────────────────────────────────
-// ── SHARED + LOCAL STORAGE ────────────────────────────────────────────────
-// OPTION A — Local only (default): each user's browser stores their own data
-// OPTION B — Shared (setup required): one upload, everyone sees same data
-//   Setup: Click "Enable shared storage" → follow prompts to configure JSONBin.io (free)
+// ── STORAGE: LOCAL + SHARED (Google Apps Script backend) ─────────────────
+// Local: saves in your browser instantly, always works
+// Shared: one person uploads → everyone sees the same data
+//   Setup: see Ascend_Dashboard_Backend.gs → deploy as web app → paste URL below
+
+function getBackendUrl(){return localStorage.getItem('ascend_backend_url')||'https://script.google.com/macros/s/AKfycbxEa9KSEfyXqGcHrimLl3gDOoFnUxRc5RpRyEVXPpaL1zi58WcSv3h0QnyyretN1e4/exec';}
 
 function save(t,d,f){
-  try{localStorage.setItem('ascv5_'+t,JSON.stringify(d));localStorage.setItem('ascv5_'+t+'_m',JSON.stringify({f,rows:d.length,saved:new Date().toISOString()}));}catch(e){}
-  // If shared storage is configured, also push to shared bin
-  const binId=localStorage.getItem('ascend_bin_id');const apiKey=localStorage.getItem('ascend_api_key');
-  if(binId&&apiKey){
-    // Build full payload after a short delay to allow all files to load
-    setTimeout(()=>{
-      const payload={ccr:DATA.ccr,events25:DATA.events25,events26:DATA.events26,_saved:new Date().toISOString()};
-      fetch(`https://api.jsonbin.io/v3/b/${binId}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':apiKey,'X-Bin-Versioning':'false'},body:JSON.stringify(payload)})
-        .then(r=>{if(r.ok)document.getElementById('storInfo').innerHTML='✓ Saved to shared store — team will see this data · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Manage</span> · <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear</span>';})
-        .catch(e=>console.log('Shared save failed',e));
-    },500);
-  }
+  // Save locally first (instant)
+  try{
+    localStorage.setItem('ascv5_'+t,JSON.stringify(d));
+    localStorage.setItem('ascv5_'+t+'_m',JSON.stringify({f,rows:d.length,saved:new Date().toISOString()}));
+  }catch(e){}
+  // Push to shared backend after a short delay (allows all three files to load)
+  clearTimeout(window._saveTimer);
+  window._saveTimer=setTimeout(pushToBackend,1500);
+}
+
+function pushToBackend(){
+  const url=getBackendUrl();
+  if(!url)return;
+  if(!Object.values(DATA).some(v=>v&&v.length))return;
+  document.getElementById('storInfo').innerHTML='Saving to shared store...';
+  const payload={ccr:DATA.ccr||[],events25:DATA.events25||[],events26:DATA.events26||[],savedBy:'dashboard'};
+  fetch(url,{method:'POST',body:JSON.stringify(payload)})
+    .then(r=>r.json())
+    .then(j=>{
+      if(j.status==='ok'){
+        const d=new Date(j.saved);
+        document.getElementById('storInfo').innerHTML=`✓ Shared data saved — ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · CCR: ${j.ccrRows} members · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Manage</span> · <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear</span>`;
+      }else{
+        document.getElementById('storInfo').innerHTML='Saved locally only — shared save failed · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Setup sharing</span>';
+      }
+    }).catch(()=>{
+      document.getElementById('storInfo').innerHTML='Saved locally — <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Setup shared storage</span>';
+    });
 }
 
 function restore(){
-  // Try shared bin first if configured
-  const binId=localStorage.getItem('ascend_bin_id');const apiKey=localStorage.getItem('ascend_api_key');
-  if(binId&&apiKey){
+  const url=getBackendUrl();
+  if(url){
     document.getElementById('storInfo').innerHTML='Loading shared data...';
-    return fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`,{headers:{'X-Master-Key':apiKey,'X-Access-Key':apiKey}})
-      .then(r=>r.ok?r.json():null)
-      .then(json=>{
-        if(json&&json.record&&json.record._saved){
-          const p=json.record;let any=false;
-          ['ccr','events25','events26'].forEach(t=>{if(p[t]&&p[t].length){DATA[t]=p[t];document.getElementById('btn-'+t).classList.add('loaded');any=true;}});
-          if(any){updateStatus();renderAll();
-            const d=new Date(p._saved);
-            document.getElementById('storInfo').innerHTML=`Shared data — updated ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Manage</span> · <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear</span>`;
-            return true;}
+    return fetch(url)
+      .then(r=>r.json())
+      .then(j=>{
+        if(j.status==='ok'&&j.data){
+          const p=j.data;let any=false;
+          ['ccr','events25','events26'].forEach(t=>{
+            if(p[t]&&p[t].length){DATA[t]=p[t];document.getElementById('btn-'+t).classList.add('loaded');any=true;}
+          });
+          if(any){
+            updateStatus();renderAll();
+            const d=new Date(j.saved);
+            document.getElementById('storInfo').innerHTML=`Shared data — last updated ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · CCR: ${j.ccrRows} members · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Manage</span> · <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear</span>`;
+            return true;
+          }else{
+            document.getElementById('storInfo').innerHTML='Shared storage empty — upload files to populate · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Manage</span>';
+          }
+        }else if(j.status==='empty'){
+          document.getElementById('storInfo').innerHTML='Shared storage connected but empty — upload files below · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Manage</span>';
         }
         return restoreLocal();
-      }).catch(()=>restoreLocal());
+      }).catch(()=>Promise.resolve(restoreLocal()));
   }
   return Promise.resolve(restoreLocal());
 }
@@ -404,30 +429,48 @@ function restore(){
 function restoreLocal(){
   let any=false;
   ['ccr','events25','events26'].forEach(t=>{
-    try{const r=localStorage.getItem('ascv5_'+t);const m=JSON.parse(localStorage.getItem('ascv5_'+t+'_m')||'null');
-    if(r&&m){DATA[t]=JSON.parse(r);document.getElementById('btn-'+t).classList.add('loaded');any=true;}}catch(e){}
+    try{
+      const r=localStorage.getItem('ascv5_'+t);
+      const m=JSON.parse(localStorage.getItem('ascv5_'+t+'_m')||'null');
+      if(r&&m){DATA[t]=JSON.parse(r);document.getElementById('btn-'+t).classList.add('loaded');any=true;}
+    }catch(e){}
   });
-  if(any){updateStatus();renderAll();}return any;
+  if(any){updateStatus();renderAll();}
+  return any;
 }
 
 function clearSaved(){
-  ['ccr','events25','events26'].forEach(t=>{localStorage.removeItem('ascv5_'+t);localStorage.removeItem('ascv5_'+t+'_m');DATA[t]=null;document.getElementById('btn-'+t).classList.remove('loaded');});
+  ['ccr','events25','events26'].forEach(t=>{
+    localStorage.removeItem('ascv5_'+t);localStorage.removeItem('ascv5_'+t+'_m');
+    DATA[t]=null;document.getElementById('btn-'+t).classList.remove('loaded');
+  });
   updateStatus();renderAll();
 }
 
 function shareSetup(){
-  const b=localStorage.getItem('ascend_bin_id')||'';const k=localStorage.getItem('ascend_api_key')||'';
-  const intro=b?'Shared storage is active.\n\nShare this Bin ID and API key with your team so they see the same data:\n\nBin ID: '+b+'\n\nUpdate credentials below, or Cancel to keep current settings.'
-    :'Enable shared storage so your whole team sees the same data after one upload.\n\nSetup (2 min, free):\n1. Go to jsonbin.io → Create free account\n2. Click Bins → Create New Bin → paste {} → Save\n3. Copy the Bin ID from the URL\n4. Go to Account → API Keys → copy your Master Key\n5. Paste both below';
-  const newB=prompt(intro,'\nBin ID:');if(newB===null)return;
-  const newK=prompt('Master Key:','');if(newK===null)return;
-  localStorage.setItem('ascend_bin_id',newB.trim());localStorage.setItem('ascend_api_key',newK.trim());
-  const payload={ccr:DATA.ccr,events25:DATA.events25,events26:DATA.events26,_saved:new Date().toISOString()};
-  if(Object.values(DATA).some(v=>v&&v.length)){
-    fetch(`https://api.jsonbin.io/v3/b/${newB.trim()}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':newK.trim(),'X-Bin-Versioning':'false'},body:JSON.stringify(payload)})
-      .then(r=>{if(r.ok)alert('✓ Shared storage configured! Share your Bin ID and API key with your team. They open the dashboard and click "Enable shared storage" to connect.');else alert('Could not connect. Check your Bin ID and API key at jsonbin.io.');})
-      .catch(()=>alert('Could not connect to jsonbin.io. Check your internet connection.'));
-  }else{alert('Shared storage configured. Upload files to save them to the shared store.');}
+  const current=getBackendUrl();
+  const msg=current
+    ? 'Shared storage is active.\n\nYour Apps Script URL:\n'+current+'\n\nShare this URL with your team — they paste it in their own dashboard under "Setup sharing".\n\nTo update, paste a new URL below (or Cancel to keep current):'
+    : 'Setup shared storage so your whole team sees the same data.\n\n5-minute setup:\n1. Go to script.google.com → New Project\n2. Paste the code from Ascend_Dashboard_Backend.gs\n3. Click Deploy → New Deployment → Web App\n4. Execute as: Me  |  Who has access: Anyone\n5. Click Deploy → copy the Web App URL\n6. Paste it below\n\nAfter setup, upload your files once and everyone sees them.';
+  const url=prompt(msg,current||'');
+  if(url===null)return;
+  if(url.trim()){
+    localStorage.setItem('ascend_backend_url',url.trim());
+    // Test connection
+    fetch(url.trim())
+      .then(r=>r.json())
+      .then(j=>{
+        if(j.status==='ok'||j.status==='empty'){
+          alert('✓ Connected! '+(j.status==='ok'?'Found existing data — reloading.':'Storage is empty — upload files to populate.'));
+          if(j.status==='ok')restore();
+          else document.getElementById('storInfo').innerHTML='Shared storage connected — upload files to populate · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Manage</span>';
+        }else{alert('Connected but got unexpected response. Check the Apps Script deployment.');}
+      }).catch(()=>alert('Could not connect. Make sure the Apps Script is deployed as a web app with "Anyone" access.'));
+  }else{
+    localStorage.removeItem('ascend_backend_url');
+    alert('Shared storage removed. Using local storage only.');
+    document.getElementById('storInfo').innerHTML='Local only · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Setup shared storage</span>';
+  }
 }
 
 function updateStatus(){
@@ -438,8 +481,8 @@ function updateStatus(){
   }).join('');
   const metas=['ccr','events25','events26'].map(t=>{try{return JSON.parse(localStorage.getItem('ascv5_'+t+'_m')||'null');}catch(e){return null;}}).filter(Boolean);
   if(metas.length){const d=new Date(metas.map(m=>new Date(m.saved)).sort((a,b)=>b-a)[0]);
-  document.getElemestorInfo').innerHTML=`${localStorage.getItem('ascend_bin_id')?'Shared':'Local'} data — last updated ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} &nbsp;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">${localStorage.getItem('ascend_bin_id')?'Manage sharing':'Enable shared storage'}</span> &nbsp;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear</span>`;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear saved data</span>`;
-  }else document.getElementById('storInfo').innerHTML='';
+  document.getElemestorInfo').innerHTML=`${getBackendUrl()?'Shared':'Local'} data — last updated ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} &nbsp;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">${getBackendUrl()?'Manage sharing':'Setup sharing'}</span> &nbsp;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear</span>`;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear saved data</span>`;
+  }else document.getElementById('storInfo').innerHTML='<span style="color:#E83402">Shared storage active — upload files to update for the whole team</span> · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Change settings</span>';
   if(metas.length>=2)document.getElementById('uploadZone').classList.add('loaded');
 }
 
