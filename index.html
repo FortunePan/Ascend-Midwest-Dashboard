@@ -5,8 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Ascend Midwest — Chapter Intelligence Hub</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
+function shareSetup(){alert("To share with your team, email them this HTML file. They open it locally and upload their own copy of the data files.");}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
+function shareSetup(){alert("To share with your team, email them this HTML file. They open it locally and upload their own copy of the data files.");}
+</script>
 <style>
 :root{--red:#E83402;--navy:#171B4B;--dark:#171B4B;--teal:#E83402;--purple:#646787;
 --gray:#646787;--bg:#F2F2F2;--surface:#FFFFFF;--border:#D8D9E1;--text:#111111;
@@ -302,6 +306,7 @@ function getF(row,...keys){
   return'';
 }
 function isActive(r){
+  if(r._active===true)return true;
   const sk=Object.keys(r).find(k=>k.startsWith('Status as of')||k.toLowerCase()==='status');
   return sk?String(r[sk]).includes('Active'):false;
 }
@@ -380,228 +385,72 @@ function isCurrentSponsor(rawPromoCode) {
   return false;
 }
 
-// ── STORAGE ───────────────────────────────────────────────────────────────────
-// ── STORAGE ───────────────────────────────────────────────────────────────
-// Two-layer approach:
-//   READ:  Google Sheets API (public, no CORS issues, instant)
-//   WRITE: Apps Script web app (same URL forever - do NOT create new deployments)
-//
-// Sheet ID: 1NjcVrWJcWmLLnkxihDG-JqyU8z8Y_tWZrJ0gkL8W8Us
-// Apps Script: https://script.google.com/macros/s/AKfycby_a8LTws8CFF3WiHOWIGWnpyaCaCQF55mqJV3haXaO-ijN_RBtIYSRDRqQrYSp008/exec
-
-const SHEET_ID = '1NjcVrWJcWmLLnkxihDG-JqyU8z8Y_tWZrJ0gkL8W8Us';
-const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycby_a8LTws8CFF3WiHOWIGWnpyaCaCQF55mqJV3haXaO-ijN_RBtIYSRDRqQrYSp008/exec';
-
-// READ from Google Sheets directly (no auth needed for public sheets, no CORS)
-async function readFromSheet() {
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Data`;
-  const resp = await fetch(url);
-  const text = await resp.text();
-  // Google wraps the response in /*O_o*/\ngoogle.visualization.Query.setResponse(...)
-  const json = JSON.parse(text.replace(/^[^{]*/, '').replace(/[^}]*$/, ''));
-  return json;
-}
-
-// WRITE via Apps Script (handles the sheet writing server-side, no CORS on POST to Apps Script)
-async function writeToScript(payload) {
-  // Apps Script redirects POST to GET with ?payload= for CORS compatibility
-  // Use no-cors mode and just fire-and-forget, then verify via sheet read
-  const resp = await fetch(WEBAPP_URL, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-    headers: {'Content-Type': 'text/plain'}, // text/plain avoids CORS preflight
-    mode: 'no-cors'  // fire and forget - we verify success by reading sheet
-  });
-  return true; // no-cors means we can't read response, verify via readFromSheet()
-}
+// ── STORAGE: localStorage (reliable, local, instant) ─────────────────────
+// Data saves to your browser automatically. To share with Min/Isabelle:
+// Email them this HTML file. They open it, drop in their own files once,
+// their browser saves it permanently. Each person has their own copy.
 
 function save(t, d, f) {
-  // Save to localStorage immediately
   try {
-    localStorage.setItem('ascv5_' + t, JSON.stringify(d));
-    localStorage.setItem('ascv5_' + t + '_m', JSON.stringify({f, rows: d.length, saved: new Date().toISOString()}));
-  } catch(e) {}
-  
-  // Debounce: wait 1.5s for all files to load, then push once
-  clearTimeout(window._saveTimer);
-  window._saveTimer = setTimeout(pushAllToSheet, 1500);
-}
-
-async function pushAllToSheet() {
-  if (!Object.values(DATA).some(v => v && v.length)) return;
-  
-  document.getElementById('storInfo').innerHTML = 'Saving to shared store...';
-  
-  // Build slimmed payload - active CCR only, key fields only
-  const ccrSlim = (DATA.ccr || []).filter(r => isActive(r)).map(r => ({
-    s: Object.keys(r).find(k => k.startsWith('Status')) ? r[Object.keys(r).find(k => k.startsWith('Status'))] : 'Active',
-    fn: getF(r, 'First_Name', 'First Name') || '',
-    ln: getF(r, 'Last_Name', 'Last Name') || '',
-    em: getF(r, 'Email_Address', 'Email Address', 'Email') || '',
-    emp: getF(r, 'Employer_Name', 'Employer Name', 'Organization') || '',
-    sp: getF(r, 'Promo Code Sponsor', 'PromoCodeSponsor') || '',
-    exp: getF(r, 'Expiration Year/Month', 'Expiration Month') || '',
-    reg: getF(r, 'Registration Year/Month', 'Registration Month') || '',
-    mem: getF(r, 'Membership', 'Membership Type') || ''
-  }));
-  
-  const ev25Slim = (DATA.events25 || []).map(r => ({
-    y: '2025',
-    fn: getF(r, 'First_Name', 'First Name') || '',
-    ln: getF(r, 'Last_Name', 'Last Name') || '',
-    em: getF(r, 'Email Address', 'Email', 'email') || '',
-    org: getF(r, 'Organization', 'Employer') || '',
-    ev: getF(r, 'Event_Name', 'Event Name', 'event_name') || ''
-  }));
-  
-  const ev26Slim = (DATA.events26 || []).map(r => ({
-    y: '2026', a: true,
-    fn: getF(r, 'First_Name', 'First Name') || '',
-    ln: getF(r, 'Last_Name', 'Last Name') || '',
-    em: getF(r, 'Email', 'Email Address') || '',
-    org: getF(r, 'Organization', 'organization') || '',
-    ev: getF(r, 'Event_Name', 'Event Name') || ''
-  }));
-  
-  const payload = {
-    ccr: ccrSlim, events25: ev25Slim, events26: ev26Slim,
-    saved: new Date().toISOString(),
-    ccrRows: ccrSlim.length, events25Rows: ev25Slim.length, events26Rows: ev26Slim.length
-  };
-  
-  try {
-    await writeToScript(payload);
-    // Verify by reading back after 3 seconds
-    setTimeout(async () => {
-      try {
-        const sheetData = await readFromSheet();
-        const rows = sheetData?.table?.rows;
-        if (rows && rows.length > 0) {
-          const d = new Date(payload.saved);
-          document.getElementById('storInfo').innerHTML = 
-            '✓ Shared — saved ' + d.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) + 
-            ' · CCR: ' + ccrSlim.length + ' active members · ' +
-            '<span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear local</span>';
-        } else {
-          document.getElementById('storInfo').innerHTML = 
-            'Saved locally · Shared save may still be processing · <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear</span>';
-        }
-      } catch(e) {
-        document.getElementById('storInfo').innerHTML = 
-          'Saved locally · ' + ccrSlim.length + ' active members loaded';
-      }
-    }, 3000);
-  } catch(e) {
-    document.getElementById('storInfo').innerHTML = 'Saved locally only · ' + e.message;
-  }
-}
-
-async function restore() {
-  // Try reading from Google Sheet first
-  try {
-    document.getElementById('storInfo').innerHTML = 'Loading shared data...';
-    const sheetData = await readFromSheet();
-    const rows = sheetData?.table?.rows;
-    
-    if (rows && rows.length >= 2) {
-      // Row 0 = metadata, Row 1+ = data chunks
-      const metaStr = rows[0]?.c?.[0]?.v || '{}';
-      const meta = JSON.parse(metaStr);
-      const chunks = rows.slice(1).map(r => r?.c?.[0]?.v || '').join('');
-      
-      if (chunks) {
-        const data = JSON.parse(chunks);
-        
-        // Remap slimmed keys back to full format
-        if (data.ccr && data.ccr.length) {
-          DATA.ccr = data.ccr.map(r => ({
-            'Status as of 04/26': r.s || 'Active',
-            'First_Name': r.fn || '', 'Last_Name': r.ln || '',
-            'Email_Address': r.em || '', 'Employer_Name': r.emp || '',
-            'Promo Code Sponsor': r.sp || '',
-            'Expiration Year/Month': r.exp || '',
-            'Registration Year/Month': r.reg || '',
-            'Membership': r.mem || '', '_active': true
-          }));
-          document.getElementById('btn-ccr').classList.add('loaded');
-        }
-        if (data.events25 && data.events25.length) {
-          DATA.events25 = data.events25.map(r => ({
-            'Attended': 'Yes', '_year': '2025',
-            'First_Name': r.fn || '', 'Last_Name': r.ln || '',
-            'Email': r.em || '', 'Organization': r.org || '', 'Event_Name': r.ev || ''
-          }));
-          document.getElementById('btn-events25').classList.add('loaded');
-        }
-        if (data.events26 && data.events26.length) {
-          DATA.events26 = data.events26.map(r => ({
-            '_year': '2026', '_attended': true,
-            'First_Name': r.fn || '', 'Last_Name': r.ln || '',
-            'Email': r.em || '', 'Organization': r.org || '', 'Event_Name': r.ev || ''
-          }));
-          document.getElementById('btn-events26').classList.add('loaded');
-        }
-        
-        if (Object.values(DATA).some(v => v && v.length)) {
-          updateStatus();
-          renderAll();
-          const d = new Date(meta.saved || Date.now());
-          document.getElementById('storInfo').innerHTML = 
-            'Shared data — last updated ' + d.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'}) + 
-            ' · CCR: ' + (meta.ccrRows || 0) + ' members · ' +
-            '<span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear local cache</span>';
-          return true;
-        }
-      }
+    // Only save what we need — active members and key fields
+    let toSave = d;
+    if (t === 'ccr') {
+      toSave = d.filter(r => isActive(r)).map(r => ({...r, _active: true}));
     }
-    
-    // Sheet empty or no data
-    document.getElementById('storInfo').innerHTML = 
-      'Shared storage ready — upload files to populate for the whole team';
-      
+    localStorage.setItem('ascend_' + t, JSON.stringify(toSave));
+    localStorage.setItem('ascend_' + t + '_meta', JSON.stringify({
+      f: f, rows: toSave.length, orig: d.length, saved: new Date().toISOString()
+    }));
   } catch(e) {
-    console.log('Sheet read failed:', e.message, '— falling back to local');
+    // Storage full — remove just this type's old data and retry
+    try {
+      localStorage.removeItem('ascend_' + t);
+      localStorage.removeItem('ascend_' + t + '_meta');
+      localStorage.setItem('ascend_' + t, JSON.stringify(toSave));
+      localStorage.setItem('ascend_' + t + '_meta', JSON.stringify({f:f,rows:toSave.length,saved:new Date().toISOString()}));
+    } catch(e2) {
+      console.error('Could not save to localStorage:', e2);
+    }
   }
-  
-  // Fall back to localStorage
-  return restoreLocal();
 }
 
-function restoreLocal() {
+function restore() {
   let any = false;
   ['ccr', 'events25', 'events26'].forEach(t => {
     try {
-      const r = localStorage.getItem('ascv5_' + t);
-      const m = JSON.parse(localStorage.getItem('ascv5_' + t + '_m') || 'null');
-      if (r && m) { DATA[t] = JSON.parse(r); document.getElementById('btn-' + t).classList.add('loaded'); any = true; }
-    } catch(e) {}
+      const raw = localStorage.getItem('ascend_' + t);
+      const meta = JSON.parse(localStorage.getItem('ascend_' + t + '_meta') || 'null');
+      if (raw && meta) {
+        DATA[t] = JSON.parse(raw);
+        document.getElementById('btn-' + t).classList.add('loaded');
+        any = true;
+      }
+    } catch(e) { console.warn('Could not restore', t, e); }
   });
   if (any) { updateStatus(); renderAll(); }
   return any;
 }
 
 function clearSaved() {
+  if (!confirm('Clear all saved data? You will need to re-upload files.')) return;
   ['ccr', 'events25', 'events26'].forEach(t => {
-    localStorage.removeItem('ascv5_' + t);
-    localStorage.removeItem('ascv5_' + t + '_m');
+    localStorage.removeItem('ascend_' + t);
+    localStorage.removeItem('ascend_' + t + '_meta');
     DATA[t] = null;
     document.getElementById('btn-' + t).classList.remove('loaded');
   });
-  updateStatus(); renderAll();
-}
-
-function shareSetup() {
-  alert('Shared storage is configured.\n\nApps Script URL:\n' + WEBAPP_URL + '\n\nGoogle Sheet:\nhttps://docs.google.com/spreadsheets/d/' + SHEET_ID + '\n\nTo share with your team: just send them the dashboard URL. Data loads automatically from the shared Google Sheet.');
+  updateStatus();
+  renderAll();
 }
 
 
 function updateStatus(){
   const labels={ccr:'CCR',events25:'2025 Events',events26:'2026 Events'};
   document.getElementById('statusBar').innerHTML=['ccr','events25','events26'].map(t=>{
-    const m=JSON.parse(localStorage.getItem('ascv5_'+t+'_m')||'null');
+    const m=JSON.parse(localStorage.getItem('ascend_'+t+'_meta')||'null');
     return`<span class="sp" style="background:${m?'#FFF5F2':'#F5F5F5'};color:${m?'#E83402':'#999'}">${labels[t]}: ${m?m.rows+' rows':'not loaded'}</span>`;
   }).join('');
-  const metas=['ccr','events25','events26'].map(t=>{try{return JSON.parse(localStorage.getItem('ascv5_'+t+'_m')||'null');}catch(e){return null;}}).filter(Boolean);
+  const metas=['ccr','events25','events26'].map(t=>{try{return JSON.parse(localStorage.getItem('ascend_'+t+'_meta')||'null');}catch(e){return null;}}).filter(Boolean);
   if(metas.length){const d=new Date(metas.map(m=>new Date(m.saved)).sort((a,b)=>b-a)[0]);
   document.getElemestorInfo').innerHTML=`${getBackendUrl()?'Shared':'Local'} data — last updated ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} &nbsp;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">${getBackendUrl()?'Manage sharing':'Setup sharing'}</span> &nbsp;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear</span>`;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear saved data</span>`;
   }else document.getElementById('storInfo').innerHTML='<span style="color:#E83402">Shared storage active — upload files to update for the whole team</span> · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Change settings</span>';
@@ -613,7 +462,8 @@ function loadFile(type,input){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=e=>{
-    document.getElementById('storInfo').innerHTML='Processing file...';
+    document.getElementById('storInfo').innerHTML='Processing ' + file.name + '...';
+    document.getElementById('btn-'+type).querySelector('label').textContent = 'Loading...';
     try{
       const wb=XLSX.read(e.target.result,{type:'array'});
       let data=[];
@@ -885,7 +735,9 @@ function renderPipeline(){
 }
 
 // INIT
-restore().then(loaded => { if(!loaded) renderSummary(); });
+if (!restore()) renderSummary();
+
+function shareSetup(){alert("To share with your team, email them this HTML file. They open it locally and upload their own copy of the data files.");}
 </script>
 </body>
 </html>
