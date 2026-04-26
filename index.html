@@ -259,7 +259,7 @@ let EV_YEAR='all', SP_FILTER='all', PP_FILTER='all';
 
 // ── LOOKUP — consolidates all known variants ─────────────────────────────────
 const LOOKUP={
-  'jpmorgan chase':'JPMorgan Chase','jp morgan chase & co.':'JPMorgan Chase',
+  'jpmorgan chase':'JPMorgan Chase','jp morgan chase & co.':'JPMorgan Chase','jpmorgan chase & co':'JPMorgan Chase','jp morgan chase co':'JPMorgan Chase','j.p. morgan':'JPMorgan Chase','jpmc sponsor':'JPMorgan Chase',
   'jp morgan chase':'JPMorgan Chase','jpmc':'JPMorgan Chase','jpmchase':'JPMorgan Chase',
   'jp morgan chase ':'JPMorgan Chase',
   'ernst & young':'EY / Ernst & Young','ernst & young llp':'EY / Ernst & Young',
@@ -357,6 +357,28 @@ const SPONSORS=[
   {name:'KraftHeinz',tier:'Supporter',amount:1500,expires:'Aug 2026',paid:'Paid',value:2750,contact:'NP Phan',days:96},
 ];
 const SP_NAMES=SPONSORS.map(s=>s.name.toLowerCase());
+
+// All known CCR promo code sponsor strings for current chapter sponsors
+// This prevents current sponsors from appearing as "non-sponsor corp ticket buyers"
+const SPONSOR_PROMO_CODES=[
+  'jpmc','jpmorgan','jp morgan','jpmorgan chase','jp morgan chase',
+  'rsm','rsm us','crowe','cibc','sargent','encova',
+  'robert half','protiviti','roberthalf','hyatt',
+  'nationwide','mars','mars wrigley','kellanova','wipfli',
+  'pwc','pricewaterhousecoopers','riveron',
+  'ingredion','west monroe','westmonroe','kraft','kraftheinz','kraft heinz',
+];
+
+function isCurrentSponsor(rawPromoCode) {
+  if (!rawPromoCode || rawPromoCode === 'nan') return false;
+  const lower = rawPromoCode.toLowerCase().trim();
+  // Check against all known promo code strings
+  if (SPONSOR_PROMO_CODES.some(code => lower.includes(code) || code.includes(lower.substring(0, Math.min(lower.length, 6))))) return true;
+  // Check against canonical sponsor names via lookup
+  const canonical = canon(rawPromoCode).toLowerCase();
+  if (SP_NAMES.some(s => canonical.includes(s.substring(0, Math.min(s.length, 8))) || s.includes(canonical.substring(0, Math.min(canonical.length, 8))))) return true;
+  return false;
+}
 
 // ── STORAGE ───────────────────────────────────────────────────────────────────
 // ── STORAGE: LOCAL + SHARED (Google Apps Script backend) ─────────────────
@@ -626,7 +648,7 @@ function renderMembership(){
   const ctb={};
   am.forEach(r=>{
     const sp=memSponsor(r);const spC=canon(sp);
-    if(sp&&sp!=='nan'&&!SP_NAMES.some(s=>spC.toLowerCase().includes(s.substring(0,5))||sp.toLowerCase().includes(s.substring(0,5))))
+    if(sp&&sp!=='nan'&&!isCurrentSponsor(sp))
       ctb[spC||sp]=(ctb[spC||sp]||0)+1;
   });
   const ns=Object.entries(ctb).sort((a,b)=>b[1]-a[1]);
