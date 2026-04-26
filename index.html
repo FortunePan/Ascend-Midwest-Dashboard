@@ -427,7 +427,7 @@ function restore() {
       }
     } catch(e) { console.warn('Could not restore', t, e); }
   });
-  if (any) { updateStatus(); renderAll(); }
+  if (any) { updateStatus(); setTimeout(renderAll, 50); }
   return any;
 }
 
@@ -463,7 +463,6 @@ function loadFile(type,input){
   const reader=new FileReader();
   reader.onload=e=>{
     document.getElementById('storInfo').innerHTML='Processing ' + file.name + '...';
-    document.getElementById('btn-'+type).querySelector('label').textContent = 'Loading...';
     try{
       const wb=XLSX.read(e.target.result,{type:'array'});
       let data=[];
@@ -486,7 +485,7 @@ function loadFile(type,input){
       }
       DATA[type]=data;save(type,data,file.name);
       document.getElementById('btn-'+type).classList.add('loaded');
-      updateStatus();renderAll();
+      updateStatus();setTimeout(renderAll,50);
     }catch(err){alert('Error: '+err.message);}
   };
   reader.readAsArrayBuffer(file);
