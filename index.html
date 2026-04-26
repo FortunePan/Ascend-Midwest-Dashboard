@@ -399,12 +399,58 @@ function save(t,d,f){
   window._saveTimer=setTimeout(pushToBackend,1500);
 }
 
+function slimData(rows, keepFields) {
+  if (!rows || !rows.length) return [];
+  return rows.map(r => {
+    const slim = {};
+    keepFields.forEach(f => { if (r[f] !== undefined) slim[f] = r[f]; });
+    // Also copy any field matching these patterns
+    Object.keys(r).forEach(k => {
+      if (keepFields.some(f => k.toLowerCase().includes(f.toLowerCase()))) slim[k] = r[k];
+    });
+    return slim;
+  });
+}
+
 function pushToBackend(){
   const url=getBackendUrl();
   if(!url)return;
   if(!Object.values(DATA).some(v=>v&&v.length))return;
   document.getElementById('storInfo').innerHTML='Saving to shared store...';
-  const payload={ccr:DATA.ccr||[],events25:DATA.events25||[],events26:DATA.events26||[],savedBy:'dashboard'};
+  
+  // Slim CCR: active members only, key fields only
+  const ccrSlim = (DATA.ccr||[]).filter(r=>isActive(r)).map(r=>({
+    'Status':Object.keys(r).find(k=>k.startsWith('Status'))?r[Object.keys(r).find(k=>k.startsWith('Status'))]:'Active',
+    'First_Name':getF(r,'First_Name','First Name')||'',
+    'Last_Name':getF(r,'Last_Name','Last Name')||'',
+    'Email_Address':getF(r,'Email_Address','Email Address','Email')||'',
+    'Employer_Name':getF(r,'Employer_Name','Employer Name','Organization')||'',
+    'Promo Code Sponsor':getF(r,'Promo Code Sponsor','PromoCodeSponsor')||'',
+    'Expiration Year/Month':getF(r,'Expiration Year/Month','Expiration Month')||'',
+    'Registration Year/Month':getF(r,'Registration Year/Month','Registration Month')||'',
+    'Membership':getF(r,'Membership','Membership Type')||'',
+    '_active':true
+  }));
+  
+  // Slim events: attended only, key fields only
+  const ev25Slim = (DATA.events25||[]).map(r=>({
+    'Attended':'Yes','_year':'2025',
+    'First_Name':getF(r,'First_Name','First Name')||'',
+    'Last_Name':getF(r,'Last_Name','Last Name')||'',
+    'Email':getF(r,'Email Address','Email','email')||'',
+    'Organization':getF(r,'Organization','Employer')||'',
+    'Event_Name':getF(r,'Event_Name','Event Name','event_name')||''
+  }));
+  const ev26Slim = (DATA.events26||[]).map(r=>({
+    '_year':'2026','_attended':true,
+    'First_Name':getF(r,'First_Name','First Name')||'',
+    'Last_Name':getF(r,'Last_Name','Last Name')||'',
+    'Email':getF(r,'Email','Email Address')||'',
+    'Organization':getF(r,'Organization','organization')||'',
+    'Event_Name':getF(r,'Event_Name','Event Name')||''
+  }));
+  
+  const payload={ccr:ccrSlim,events25:ev25Slim,events26:ev26Slim,savedBy:'dashboard'};
   fetch(url,{method:'POST',body:JSON.stringify(payload)})
     .then(r=>r.json())
     .then(j=>{
@@ -513,6 +559,7 @@ function loadFile(type,input){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=e=>{
+    document.getElementById('storInfo').innerHTML='Processing file...';
     try{
       const wb=XLSX.read(e.target.result,{type:'array'});
       let data=[];
