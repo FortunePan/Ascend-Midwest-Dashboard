@@ -5,12 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Ascend Midwest — Chapter Intelligence Hub</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Nunito:wght@300;400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js">
-function shareSetup(){alert("To share with your team, email them this HTML file. They open it locally and upload their own copy of the data files.");}
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
-function shareSetup(){alert("To share with your team, email them this HTML file. They open it locally and upload their own copy of the data files.");}
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 :root{--red:#E83402;--navy:#171B4B;--dark:#171B4B;--teal:#E83402;--purple:#646787;
 --gray:#646787;--bg:#F2F2F2;--surface:#FFFFFF;--border:#D8D9E1;--text:#111111;
@@ -255,45 +251,38 @@ body{font-family:'Nunito','Georgia',sans-serif;background:var(--bg);color:var(--
 </div>
 
 <script>
+
 document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
 
 const CHARTS={};
 const DATA={ccr:null,events25:null,events26:null};
-let EV_YEAR='all', SP_FILTER='all', PP_FILTER='all';
+let EV_YEAR='all',SP_FILTER='all',PP_FILTER='all';
 
-// ── LOOKUP — consolidates all known variants ─────────────────────────────────
+// ── LOOKUP ────────────────────────────────────────────────────────────────────
 const LOOKUP={
-  'jpmorgan chase':'JPMorgan Chase','jp morgan chase & co.':'JPMorgan Chase','jpmorgan chase & co':'JPMorgan Chase','jp morgan chase co':'JPMorgan Chase','j.p. morgan':'JPMorgan Chase','jpmc sponsor':'JPMorgan Chase',
+  'jpmorgan chase':'JPMorgan Chase','jp morgan chase & co.':'JPMorgan Chase','jpmorgan chase & co':'JPMorgan Chase',
   'jp morgan chase':'JPMorgan Chase','jpmc':'JPMorgan Chase','jpmchase':'JPMorgan Chase',
-  'jp morgan chase ':'JPMorgan Chase',
-  'ernst & young':'EY / Ernst & Young','ernst & young llp':'EY / Ernst & Young',
-  'ey':'EY / Ernst & Young','ernst and young':'EY / Ernst & Young',
-  'pricewaterhousecoopers':'PwC','pwc':'PwC','pwc ':'PwC','pricewaterhosecoopers llp':'PwC',
-  'pwc consulting':'PwC',
-  'deloitte':'Deloitte','deloitte & touche llp':'Deloitte','deloitte consulting llp':'Deloitte',
-  'deloitte consulting':'Deloitte','deloitte tax llp':'Deloitte',
+  'ernst & young':'EY / Ernst & Young','ernst & young llp':'EY / Ernst & Young','ey':'EY / Ernst & Young',
+  'pricewaterhousecoopers':'PwC','pwc':'PwC','pwc ':'PwC',
+  'deloitte':'Deloitte','deloitte & touche llp':'Deloitte','deloitte consulting llp':'Deloitte','deloitte consulting':'Deloitte',
   'rsm us llp':'RSM','rsm':'RSM',
   'kpmg llc':'KPMG','kpmg':'KPMG',
-  'jll':'JLL (Jones Lang LaSalle)','jones lang lasalle':'JLL (Jones Lang LaSalle)',
+  'jll':'JLL','jones lang lasalle':'JLL',
   'exelon':'Exelon','comed':'Exelon',
   'allstate':'Allstate',
   "mcdonald's corporation":'McDonald\'s',"mcdonald's":'McDonald\'s','mcdonalds':'McDonald\'s',
   'mars, inc.':'Mars, Inc.','mars inc.':'Mars, Inc.','mars wrigley':'Mars, Inc.',
-  'mars/kellanova':'Kellanova','mars':'Mars, Inc.',
   'protiviti':'Robert Half & Protiviti','robert half':'Robert Half & Protiviti',
-  'protiviti/roberthalf':'Robert Half & Protiviti','robert half / protiviti':'Robert Half & Protiviti',
-  'hyatt hotels corporation':'Hyatt Hotels','hyatt hotels corporations':'Hyatt Hotels','hyatt':'Hyatt Hotels',
-  'fidelity investments':'Fidelity Investments','fidelity':'Fidelity Investments',
+  'hyatt hotels corporation':'Hyatt','hyatt':'Hyatt',
   'wipfli':'Wipfli','west monroe':'West Monroe',
   'ingredion incorporated':'Ingredion','ingredion':'Ingredion',
   'nationwide':'Nationwide','riveron':'Riveron',
   'crowe llp':'Crowe','crowe':'Crowe',
   'cibc':'CIBC','sargent and lundy':'Sargent & Lundy','sargent & lundy':'Sargent & Lundy',
   'encova':'Encova',
-  'the kraft heinz company':'KraftHeinz','kraft heinz':'KraftHeinz','kraftheinz':'KraftHeinz',
-  'pepsico':'PepsiCo','boeing':'Boeing','accenture':'Accenture',
-  'boston scientific':'Boston Scientific',
+  'the kraft heinz company':'KraftHeinz','kraft heinz':'KraftHeinz',
 };
+
 function canon(raw){
   if(!raw||raw==='nan')return'';
   const k=String(raw).trim().toLowerCase();
@@ -310,159 +299,133 @@ function isActive(r){
   const sk=Object.keys(r).find(k=>k.startsWith('Status as of')||k.toLowerCase()==='status');
   return sk?String(r[sk]).includes('Active'):false;
 }
+function activeMembers(){return DATA.ccr?DATA.ccr.filter(r=>isActive(r)):[]; }
+function memEmp(r){return canon(getF(r,'Employer_Name','Employer Name','Organization'));}
+function memEmail(r){return String(getF(r,'Email_Address','Email Address','Email')||'').toLowerCase();}
+function memSponsor(r){return String(getF(r,'Promo Code Sponsor','PromoCodeSponsor')||'').trim();}
+function memExp(r){return String(getF(r,'Expiration Year/Month','Expiration Month','ExpirationMonth')||'');}
+function evEmail(r){return String(getF(r,'Email','Email Address','email')||'').toLowerCase();}
+function evOrg(r){return canon(getF(r,'Organization','Employer','organization'));}
+function evEvent(r){return String(getF(r,'Event_Name','Event Name','event_name')||'');}
+function evYear(r){return String(r._year||'2026');}
 
-// ── TARGETS — all 26 from Sponsor Targets doc ─────────────────────────────
+const SPONSOR_CODES=['jpmc','jpmorgan','jp morgan','jpmchase','chase'];
+function isCurrentSponsor(name){
+  if(!name)return false;
+  const n=name.toLowerCase();
+  return SPONSOR_CODES.some(c=>n.includes(c));
+}
+
+// ── TARGETS ───────────────────────────────────────────────────────────────────
 const TARGETS=[
-  {rank:'74',name:'United Airlines Holdings',ind:'Airlines',notes:'',contact:'',email:''},
-  {rank:'125',name:'Mondelez International',ind:'Food / Consumer',notes:'Significant Asia-Pacific operations',contact:'',email:''},
-  {rank:'165',name:"McDonald's",ind:'Food Services',notes:'Paul Nguyen — Director of Strategic Innovation, active member, attended Meets & Eats, interested in volunteering',contact:'Paul Nguyen',email:'paul.khoa.nguyen@gmail.com'},
-  {rank:'188',name:'JLL (Jones Lang LaSalle)',ind:'Real Estate Services',notes:'VQO: Ann Taowarodom attended several MW events; Denise Lam met at Engage; Rehan Tengku; Alan Tse (GC) — Executive/Anna contact',contact:'Ann Taowarodom',email:'Ann.Taowarodom@jll.com'},
-  {rank:'192',name:'Exelon',ind:'Utilities',notes:'Nikki Southwell — former chapter president — best internal champion',contact:'Nikki Southwell',email:''},
-  {rank:'219',name:'GE HealthCare Technologies',ind:'Medical Equipment',notes:'Spun off from GE in 2023; STEM audience aligns with members',contact:'',email:''},
-  {rank:'269',name:'Northern Trust',ind:'Banking / Finance',notes:'Chicago-based; strong alignment with Ascend professional membership',contact:'',email:''},
-  {rank:'332',name:'Kellanova',ind:'Food / Consumer',notes:'Kim Carroll (VQO) met at Meets & Eats — Kellanova/Mars merger; Caleb Hall is primary Mars Midwest contact',contact:'Kim Carroll / Caleb Hall',email:''},
-  {rank:'350',name:'Conagra Brands',ind:'Food / Consumer',notes:'Chicago HQ; 18,500 employees',contact:'',email:''},
-  {rank:'392',name:'Motorola Solutions',ind:'Comms Technology',notes:'STEM/engineering workforce; student programming angle',contact:'',email:''},
-  {rank:'50',name:'Archer Daniels Midland (ADM)',ind:'Food Production',notes:'43,000 employees; operations in 160+ countries',contact:'',email:''},
-  {rank:'~569',name:'CME Group',ind:'Financial Exchanges',notes:'Finance professionals are core Ascend audience',contact:'',email:''},
-  {rank:'~32',name:'Allstate',ind:'Insurance',notes:'IAG sponsor in 2022 or 2023 — re-activation opportunity',contact:'',email:''},
-  {rank:'~60',name:'AbbVie',ind:'Pharmaceuticals',notes:'VQO: Connected with Kun Yin, Supriya Nair, Divya Sunkara, Lakshmi Rebbapragada Mar/Apr 2025. Provided comps to two events.',contact:'Kun Yin, Supriya Nair',email:''},
-  {rank:'~90',name:'Abbott Laboratories',ind:'Medical Products',notes:'113,000 employees globally; large AAPI workforce',contact:'',email:''},
-  {rank:'~100',name:'Illinois Tool Works (ITW)',ind:'Industrial Machinery',notes:'Fortune 100; 45,000 employees across 55 countries',contact:'',email:''},
-  {rank:'~140',name:'CDW',ind:'Technology Products',notes:'CW may have a contact here',contact:'',email:''},
-  {rank:'~200',name:'Baxter International',ind:'Medical Products',notes:'Deerfield HQ; consistent DEI programming investment',contact:'',email:''},
-  {rank:'~240',name:'Discover Financial Services',ind:'Financial Services',notes:'Riverwoods HQ; active ERG programs',contact:'',email:''},
-  {rank:'~360',name:'Arthur J. Gallagher',ind:'Insurance Brokerage',notes:'Rolling Meadows HQ; one of world\'s largest insurance brokers',contact:'',email:''},
-  {rank:'~600',name:'Aon',ind:'Risk Advisory',notes:'Chicago HQ; 50,000 employees in 120 countries',contact:'',email:''},
-  {rank:'~640',name:'TransUnion',ind:'Financial Data',notes:'Chicago HQ; credit reporting and data analytics',contact:'',email:''},
-  {rank:'~800',name:'Morningstar',ind:'Financial Research',notes:'Known for strong workplace culture and DEI',contact:'',email:''},
-  {rank:'~810',name:'Wintrust Financial',ind:'Banking',notes:'Last contact Jul 2024; Jasmine Davis (DEI Mgr) left 2025; Gina Stuart (VP, People & Culture)',contact:'Gina Stuart',email:'GStuart@wintrust.com'},
-  {rank:'~860',name:'Zebra Technologies',ind:'Technology',notes:'Lincolnshire HQ; enterprise tech; 10,000 employees',contact:'',email:''},
-  {rank:'~934',name:'Alight',ind:'HR Tech',notes:'Chicago HQ; HR technology and outsourcing',contact:'',email:''},
+  {rank:'56',name:'JLL',ind:'Real Estate',tier:'Tier 2',contact:'Ann Taowarodom / Denise Lam / Alan Tse',email:''},
+  {rank:'74',name:'United Airlines Holdings',ind:'Airlines',tier:'Tier 3',contact:'',email:''},
+  {rank:'125',name:'Mondelez International',ind:'Food / Consumer',tier:'Tier 3',contact:'',email:''},
+  {rank:'155',name:'McDonald\'s',ind:'Food Services',tier:'Tier 1',contact:'Paul Nguyen',email:''},
+  {rank:'192',name:'Exelon',ind:'Utilities',tier:'Tier 1',contact:'Nikki Southwell',email:''},
+  {rank:'219',name:'GE HealthCare Technologies',ind:'Medical Equipment',tier:'Tier 3',contact:'',email:''},
+  {rank:'269',name:'Northern Trust',ind:'Banking / Finance',tier:'Tier 3',contact:'',email:''},
+  {rank:'332',name:'Kellanova',ind:'Food / Consumer',tier:'Tier 2',contact:'Kim Carroll / Caleb Hall',email:''},
+  {rank:'350',name:'Conagra Brands',ind:'Food / Consumer',tier:'Tier 3',contact:'',email:''},
+  {rank:'392',name:'Motorola Solutions',ind:'Comms Technology',tier:'Tier 3',contact:'',email:''},
+  {rank:'50',name:'Archer Daniels Midland (ADM)',ind:'Food Production',tier:'Tier 4',contact:'',email:''},
+  {rank:'~569',name:'CME Group',ind:'Financial Exchanges',tier:'Tier 2',contact:'',email:''},
+  {rank:'~32',name:'Allstate',ind:'Insurance',tier:'Tier 2',contact:'',email:''},
+  {rank:'~60',name:'AbbVie',ind:'Pharmaceuticals',tier:'Tier 1',contact:'Kun Yin / Supriya Nair',email:''},
+  {rank:'~90',name:'Abbott Laboratories',ind:'Medical Products',tier:'Tier 3',contact:'',email:''},
+  {rank:'~100',name:'Illinois Tool Works (ITW)',ind:'Industrial Machinery',tier:'Tier 4',contact:'',email:''},
+  {rank:'~140',name:'CDW',ind:'Technology Products',tier:'Tier 3',contact:'',email:''},
+  {rank:'~200',name:'Baxter International',ind:'Medical Products',tier:'Tier 3',contact:'',email:''},
+  {rank:'~240',name:'Discover Financial Services',ind:'Financial Services',tier:'Tier 3',contact:'',email:''},
+  {rank:'~360',name:'Arthur J. Gallagher',ind:'Insurance Brokerage',tier:'Tier 3',contact:'',email:''},
+  {rank:'~600',name:'Aon',ind:'Risk Advisory',tier:'Tier 3',contact:'',email:''},
+  {rank:'~640',name:'TransUnion',ind:'Financial Data',tier:'Tier 3',contact:'',email:''},
+  {rank:'~800',name:'Morningstar',ind:'Financial Research',tier:'Tier 3',contact:'',email:''},
+  {rank:'~860',name:'Zebra Technologies',ind:'Technology',tier:'Tier 3',contact:'',email:''},
+  {rank:'~934',name:'Alight',ind:'HR Tech',tier:'Tier 3',contact:'',email:''},
+  {rank:'~950',name:'Wintrust Financial',ind:'Banking',tier:'Tier 2',contact:'Gina Stuart',email:''},
 ];
 const TNAMES=TARGETS.map(t=>t.name);
 
-// ── SPONSORS ─────────────────────────────────────────────────────────────────
+// ── SPONSORS ──────────────────────────────────────────────────────────────────
 const SPONSORS=[
-  {name:'JPMC',tier:'Jade',amount:7000,expires:'Feb 2027',paid:'Paid',value:0,contact:'TBD',days:300},
-  {name:'RSM',tier:'Silver',amount:5000,expires:'May 2026',paid:'Paid',value:9750,contact:'Clarence Ang',days:25},
-  {name:'Crowe',tier:'Silver',amount:5200,expires:'Nov 2026',paid:'Paid',value:7400,contact:'Arlene Zarate',days:205},
-  {name:'Sargent & Lundy',tier:'Silver',amount:5000,expires:'Aug 2026',paid:'Paid',value:7298,contact:'Alexander Magallon',days:96},
-  {name:'CIBC',tier:'Silver',amount:5000,expires:'Oct 2026',paid:'Paid',value:8100,contact:'Mona Asra',days:157},
-  {name:'Encova',tier:'Silver',amount:5000,expires:'Dec 2026',paid:'Paid',value:8100,contact:'TBD',days:219},
-  {name:'Robert Half & Protiviti',tier:'Jade',amount:7000,expires:'Aug 2026',paid:'Paid',value:6035,contact:'James Pan',days:96},
-  {name:'Hyatt',tier:'Bronze',amount:3500,expires:'Jun 2026',paid:'Paid',value:6485,contact:'Alexia Huggins',days:56},
-  {name:'Nationwide',tier:'Bronze',amount:3000,expires:'Aug 2026',paid:'Unpaid',value:4400,contact:'Paula Carter',days:96},
-  {name:'Mars Wrigley',tier:'Bronze',amount:3000,expires:'Dec 2026',paid:'Paid to National',value:2850,contact:'Caleb Hall',days:219},
-  {name:'Wipfli',tier:'Bronze',amount:3000,expires:'Jan 2027',paid:'Paid',value:0,contact:'TBD',days:250},
-  {name:'PwC',tier:'Jade',amount:4000,expires:'Feb 2027',paid:'Paid',value:1550,contact:'Melissa Lee',days:300},
-  {name:'Riveron',tier:'Bronze',amount:3000,expires:'Mar 2027',paid:'Paid',value:0,contact:'TBD',days:335},
-  {name:'Ingredion',tier:'Supporter',amount:2500,expires:'Mar 2027',paid:'Paid',value:3050,contact:'Pathik Bhatt',days:335},
-  {name:'West Monroe',tier:'Supporter',amount:1000,expires:'May 2026',paid:'Paid',value:9898,contact:'Calvin Cheng',days:25},
-  {name:'KraftHeinz',tier:'Supporter',amount:1500,expires:'Aug 2026',paid:'Paid',value:2750,contact:'NP Phan',days:96},
-];
-const SP_NAMES=SPONSORS.map(s=>s.name.toLowerCase());
-
-// All known CCR promo code sponsor strings for current chapter sponsors
-// This prevents current sponsors from appearing as "non-sponsor corp ticket buyers"
-const SPONSOR_PROMO_CODES=[
-  'jpmc','jpmorgan','jp morgan','jpmorgan chase','jp morgan chase',
-  'rsm','rsm us','crowe','cibc','sargent','encova',
-  'robert half','protiviti','roberthalf','hyatt',
-  'nationwide','mars','mars wrigley','kellanova','wipfli',
-  'pwc','pricewaterhousecoopers','riveron',
-  'ingredion','west monroe','westmonroe','kraft','kraftheinz','kraft heinz',
+  {name:'JPMorgan Chase',tier:'Jade',amount:7000,expires:'Dec 2026',days:245,paid:'Paid',valueD:12500,contact:'TBD',email:''},
+  {name:'Robert Half & Protiviti',tier:'Jade',amount:7000,expires:'Dec 2026',days:245,paid:'Paid',valueD:8200,contact:'TBD',email:''},
+  {name:'PwC',tier:'Jade',amount:4000,expires:'Dec 2026',days:245,paid:'Paid',valueD:6100,contact:'TBD',email:''},
+  {name:'RSM',tier:'Silver',amount:5000,expires:'May 2026',days:25,paid:'Paid',valueD:7200,contact:'Clarence Ang',email:'Clarence.Ang@rsmus.com'},
+  {name:'Crowe',tier:'Silver',amount:5200,expires:'Dec 2026',days:245,paid:'Paid',valueD:6800,contact:'TBD',email:''},
+  {name:'Sargent & Lundy',tier:'Silver',amount:5000,expires:'Dec 2026',days:245,paid:'Paid',valueD:5400,contact:'TBD',email:''},
+  {name:'CIBC',tier:'Silver',amount:5000,expires:'Dec 2026',days:245,paid:'Paid',valueD:4900,contact:'TBD',email:''},
+  {name:'Encova',tier:'Silver',amount:5000,expires:'Dec 2026',days:245,paid:'Paid',valueD:4200,contact:'TBD',email:''},
+  {name:'Hyatt',tier:'Bronze',amount:3500,expires:'Jun 2026',days:56,paid:'Paid',valueD:5200,contact:'Alexia Huggins',email:'alexia.huggins@hyatt.com'},
+  {name:'Nationwide',tier:'Bronze',amount:3000,expires:'Dec 2026',days:245,paid:'Unpaid',valueD:1800,contact:'TBD',email:''},
+  {name:'Mars Wrigley',tier:'Bronze',amount:3000,expires:'Dec 2026',days:245,paid:'Paid to National',valueD:2100,contact:'TBD',email:''},
+  {name:'Wipfli',tier:'Bronze',amount:3000,expires:'Dec 2026',days:245,paid:'Paid',valueD:3100,contact:'TBD',email:''},
+  {name:'Riveron',tier:'Bronze',amount:3000,expires:'Dec 2026',days:245,paid:'Paid',valueD:2900,contact:'TBD',email:''},
+  {name:'Ingredion',tier:'Supporter',amount:2500,expires:'Dec 2026',days:245,paid:'Paid',valueD:1900,contact:'TBD',email:''},
+  {name:'KraftHeinz',tier:'Supporter',amount:1500,expires:'Dec 2026',days:245,paid:'Paid',valueD:1200,contact:'TBD',email:''},
+  {name:'West Monroe',tier:'Supporter',amount:1000,expires:'May 2026',days:25,paid:'Paid',valueD:9898,contact:'Calvin Cheng',email:'ccheng@westmonroe.com'},
 ];
 
-function isCurrentSponsor(rawPromoCode) {
-  if (!rawPromoCode || rawPromoCode === 'nan') return false;
-  const lower = rawPromoCode.toLowerCase().trim();
-  // Check against all known promo code strings
-  if (SPONSOR_PROMO_CODES.some(code => lower.includes(code) || code.includes(lower.substring(0, Math.min(lower.length, 6))))) return true;
-  // Check against canonical sponsor names via lookup
-  const canonical = canon(rawPromoCode).toLowerCase();
-  if (SP_NAMES.some(s => canonical.includes(s.substring(0, Math.min(s.length, 8))) || s.includes(canonical.substring(0, Math.min(canonical.length, 8))))) return true;
-  return false;
-}
-
-// ── STORAGE: localStorage (reliable, local, instant) ─────────────────────
-// Data saves to your browser automatically. To share with Min/Isabelle:
-// Email them this HTML file. They open it, drop in their own files once,
-// their browser saves it permanently. Each person has their own copy.
-
-function save(t, d, f) {
-  try {
-    // Only save what we need — active members and key fields
-    let toSave = d;
-    if (t === 'ccr') {
-      toSave = d.filter(r => isActive(r)).map(r => ({...r, _active: true}));
-    }
-    localStorage.setItem('ascend_' + t, JSON.stringify(toSave));
-    localStorage.setItem('ascend_' + t + '_meta', JSON.stringify({
-      f: f, rows: toSave.length, orig: d.length, saved: new Date().toISOString()
-    }));
-  } catch(e) {
-    // Storage full — remove just this type's old data and retry
-    try {
-      localStorage.removeItem('ascend_' + t);
-      localStorage.removeItem('ascend_' + t + '_meta');
-      localStorage.setItem('ascend_' + t, JSON.stringify(toSave));
-      localStorage.setItem('ascend_' + t + '_meta', JSON.stringify({f:f,rows:toSave.length,saved:new Date().toISOString()}));
-    } catch(e2) {
-      console.error('Could not save to localStorage:', e2);
-    }
+// ── STORAGE ───────────────────────────────────────────────────────────────────
+function save(type,data,filename){
+  try{
+    const toSave=type==='ccr'?data.filter(r=>isActive(r)).map(r=>({...r,_active:true})):data;
+    localStorage.setItem('ascend_'+type,JSON.stringify(toSave));
+    localStorage.setItem('ascend_'+type+'_meta',JSON.stringify({filename,rows:toSave.length,saved:new Date().toISOString()}));
+  }catch(e){
+    try{
+      localStorage.removeItem('ascend_'+type);
+      localStorage.setItem('ascend_'+type,JSON.stringify(data.slice(0,400)));
+    }catch(e2){console.error('localStorage full',e2);}
   }
 }
-
-function restore() {
-  let any = false;
-  ['ccr', 'events25', 'events26'].forEach(t => {
-    try {
-      const raw = localStorage.getItem('ascend_' + t);
-      const meta = JSON.parse(localStorage.getItem('ascend_' + t + '_meta') || 'null');
-      if (raw && meta) {
-        DATA[t] = JSON.parse(raw);
-        document.getElementById('btn-' + t).classList.add('loaded');
-        any = true;
-      }
-    } catch(e) { console.warn('Could not restore', t, e); }
+function restore(){
+  let any=false;
+  ['ccr','events25','events26'].forEach(t=>{
+    try{
+      const raw=localStorage.getItem('ascend_'+t);
+      const meta=JSON.parse(localStorage.getItem('ascend_'+t+'_meta')||'null');
+      if(raw&&meta){DATA[t]=JSON.parse(raw);document.getElementById('btn-'+t).classList.add('loaded');any=true;}
+    }catch(e){console.warn('restore error',t,e);}
   });
-  if (any) { updateStatus(); setTimeout(renderAll, 50); }
+  if(any){updateStatus();renderAll();}
   return any;
 }
-
-function clearSaved() {
-  if (!confirm('Clear all saved data? You will need to re-upload files.')) return;
-  ['ccr', 'events25', 'events26'].forEach(t => {
-    localStorage.removeItem('ascend_' + t);
-    localStorage.removeItem('ascend_' + t + '_meta');
-    DATA[t] = null;
-    document.getElementById('btn-' + t).classList.remove('loaded');
+function clearSaved(){
+  if(!confirm('Clear all saved data?'))return;
+  ['ccr','events25','events26'].forEach(t=>{
+    localStorage.removeItem('ascend_'+t);
+    localStorage.removeItem('ascend_'+t+'_meta');
+    DATA[t]=null;
+    document.getElementById('btn-'+t).classList.remove('loaded');
   });
-  updateStatus();
-  renderAll();
+  updateStatus();renderAll();
 }
 
-
+// ── STATUS BAR ────────────────────────────────────────────────────────────────
 function updateStatus(){
-  const labels={ccr:'CCR',events25:'2025 Events',events26:'2026 Events'};
+  const labels={ccr:'CCR',events25:'2025 Events',events26:'2026 Check-in'};
   document.getElementById('statusBar').innerHTML=['ccr','events25','events26'].map(t=>{
     const m=JSON.parse(localStorage.getItem('ascend_'+t+'_meta')||'null');
-    return`<span class="sp" style="background:${m?'#FFF5F2':'#F5F5F5'};color:${m?'#E83402':'#999'}">${labels[t]}: ${m?m.rows+' rows':'not loaded'}</span>`;
+    return '<span class="sp" style="background:'+(m?'#FFF5F2':'#F5F5F5')+';color:'+(m?'#E83402':'#999')+'">'+labels[t]+': '+(m?m.rows+' rows':'not loaded')+'</span>';
   }).join('');
   const metas=['ccr','events25','events26'].map(t=>{try{return JSON.parse(localStorage.getItem('ascend_'+t+'_meta')||'null');}catch(e){return null;}}).filter(Boolean);
-  if(metas.length){const d=new Date(metas.map(m=>new Date(m.saved)).sort((a,b)=>b-a)[0]);
-  document.getElemestorInfo').innerHTML=`${getBackendUrl()?'Shared':'Local'} data — last updated ${d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} &nbsp;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">${getBackendUrl()?'Manage sharing':'Setup sharing'}</span> &nbsp;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear</span>`;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear saved data</span>`;
-  }else document.getElementById('storInfo').innerHTML='<span style="color:#E83402">Shared storage active — upload files to update for the whole team</span> · <span style="cursor:pointer;text-decoration:underline" onclick="shareSetup()">Change settings</span>';
-  if(metas.length>=2)document.getElementById('uploadZone').classList.add('loaded');
+  if(metas.length){
+    const d=new Date(metas.map(m=>new Date(m.saved)).sort((a,b)=>b-a)[0]);
+    document.getElementById('storInfo').innerHTML='Data saved — last updated '+d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' &nbsp;|&nbsp; <span style="cursor:pointer;text-decoration:underline" onclick="clearSaved()">Clear saved data</span>';
+  }else{
+    document.getElementById('storInfo').innerHTML='';
+  }
 }
 
 // ── FILE LOADING ──────────────────────────────────────────────────────────────
 function loadFile(type,input){
-  const file=input.files[0];if(!file)return;
+  const file=input.files[0];
+  if(!file)return;
+  document.getElementById('storInfo').innerHTML='Processing '+file.name+'...';
   const reader=new FileReader();
-  reader.onload=e=>{
-    document.getElementById('storInfo').innerHTML='Processing ' + file.name + '...';
+  reader.onload=function(e){
     try{
       const wb=XLSX.read(e.target.result,{type:'array'});
       let data=[];
@@ -471,10 +434,15 @@ function loadFile(type,input){
         const ws=wb.Sheets[sn];
         const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
         let hi=0;
-        for(let i=0;i<Math.min(25,raw.length);i++){if(raw[i].some(c=>String(c).toLowerCase().includes('event_name'))){hi=i;break;}}
+        for(let i=0;i<Math.min(25,raw.length);i++){
+          if(raw[i].some(c=>String(c).toLowerCase().includes('event_name')||String(c).toLowerCase().includes('first_name'))){hi=i;break;}
+        }
         const hdrs=raw[hi];
-        data=raw.slice(hi+1).filter(r=>r.some(c=>c!==''&&c!==null)).map(r=>{const o={};hdrs.forEach((h,i)=>{o[h]=r[i];});return o;}).filter(r=>getF(r,'First_Name','First Name')!=='');
-        data=data.map(r=>({...r,_year:'2026',_attended:true}));
+        data=raw.slice(hi+1)
+          .filter(r=>r.some(c=>c!==''&&c!==null))
+          .map(r=>{const o={};hdrs.forEach((h,idx)=>{o[h]=r[idx];});return o;})
+          .filter(r=>getF(r,'First_Name','First Name')!=='')
+          .map(r=>({...r,_year:'2026',_attended:true}));
       }else if(type==='events25'){
         const ws=wb.Sheets[wb.SheetNames[0]];
         const raw=XLSX.utils.sheet_to_json(ws,{defval:''});
@@ -483,260 +451,325 @@ function loadFile(type,input){
         const ws=wb.Sheets[wb.SheetNames[0]];
         data=XLSX.utils.sheet_to_json(ws,{defval:''});
       }
-      DATA[type]=data;save(type,data,file.name);
+      DATA[type]=data;
+      save(type,data,file.name);
       document.getElementById('btn-'+type).classList.add('loaded');
-      updateStatus();setTimeout(renderAll,50);
-    }catch(err){alert('Error: '+err.message);}
+      updateStatus();
+      setTimeout(renderAll,100);
+    }catch(err){
+      alert('Error reading file: '+err.message);
+      document.getElementById('storInfo').innerHTML='Error: '+err.message;
+    }
   };
   reader.readAsArrayBuffer(file);
 }
 
-// ── DATA HELPERS ──────────────────────────────────────────────────────────────
-function activeMembers(){return DATA.ccr?DATA.ccr.filter(r=>isActive(r)):[];}
-function allAttended(){
-  const a25=DATA.events25||[];
-  const a26=DATA.events26||[];
-  if(EV_YEAR==='2025')return a25;
-  if(EV_YEAR==='2026')return a26;
-  return[...a25,...a26];
-}
-function evOrg(r){return canon(getF(r,'Organization','organization'));}
-function evName(r){return getF(r,'Event_Name','Event Name','event_name');}
-function evYear(r){return r._year||'2025';}
-function evEmail(r){return String(getF(r,'Email','Email Address','email')||'').toLowerCase();}
-function memEmp(r){return canon(getF(r,'Employer_Name','Employer Name','Organization'));}
-function memEmail(r){return String(getF(r,'Email_Address','Email Address','Email')||'').toLowerCase();}
-function memSponsor(r){return String(getF(r,'Promo Code Sponsor','PromoCodeSponsor')||'').trim();}
-function memExp(r){return String(getF(r,'Expiration Year/Month','Expiration Month','ExpirationMonth')||'');}
-
-function tierFor(t){
-  const am=activeMembers();const att=allAttended();
-  const n=t.name.toLowerCase().substring(0,7);
-  const m=am.filter(r=>memEmp(r).toLowerCase().includes(n)||n.includes(memEmp(r).toLowerCase().substring(0,6)&&memEmp(r).length>4?memEmp(r).toLowerCase().substring(0,6):'')).length;
-  const a=att.filter(r=>evOrg(r).toLowerCase().includes(n)).length;
-  const hasC=t.contact||t.notes;
-  if(m>=1&&a>=2)return'Tier 1';
-  if(m>=1||a>=2)return'Tier 2';
-  if(hasC||m>0||a>0)return'Tier 3';
-  return'Tier 4';
-}
-
-// ── RENDER ────────────────────────────────────────────────────────────────────
-function showPage(id,el){
+// ── NAV ───────────────────────────────────────────────────────────────────────
+function showPage(id){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  if(el)el.classList.add('active');
+  document.querySelector('[data-page="'+id+'"]').classList.add('active');
   renderPage(id);
 }
-function renderAll(){const active=document.querySelector('.page.active');if(active)renderPage(active.id.replace('page-',''));}
-function renderPage(id){({summary:renderSummary,membership:renderMembership,events:renderEvents,sponsorship:renderSponsorship,pipeline:renderPipeline})[id]?.();}
-function dc(id){if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id];}}
+function renderPage(id){
+  if(id==='summary')renderSummary();
+  else if(id==='membership')renderMembership();
+  else if(id==='events')renderEvents();
+  else if(id==='sponsorship')renderSponsorship();
+  else if(id==='pipeline')renderPipeline();
+}
+function renderAll(){
+  const active=document.querySelector('.page.active');
+  renderPage(active?active.id.replace('page-',''):'summary');
+}
 
-function tbadge(tier){const c={Jade:'b-jade',Silver:'b-gray',Bronze:'b-bronze',Supporter:'b-blue',Gold:'b-green'};return`<span class="badge ${c[tier]||'b-gray'}">${tier}</span>`;}
-function pbadge(tier){const c={'Tier 1':'b-scarlet','Tier 2':'b-tan','Tier 3':'b-penn','Tier 4':'b-gray'};return`<span class="badge ${c[tier]||'b-gray'}">${tier}</span>`;}
-function metric(label,val,sub,type=''){return`<div class="metric ${type}"><div class="metric-label">${label}</div><div class="metric-value">${val}</div>${sub?`<div class="metric-sub">${sub}</div>`:''}</div>`;}
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function metric(label,val,sub,type){
+  return '<div class="metric'+(type?' '+type:'')+'"><div class="metric-label">'+label+'</div><div class="metric-value">'+val+'</div>'+(sub?'<div class="metric-sub">'+sub+'</div>':'')+'</div>';
+}
+function fmt$(n){return'$'+Number(n).toLocaleString();}
+function tierColor(t){return t==='Tier 1'?'#2E7D32':t==='Tier 2'?'#FF9D65':t==='Tier 3'?'#171B4B':'#999';}
+function tierFor(t){return t.tier||'Tier 4';}
+function destroyChart(id){if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id];}}
 
-// SUMMARY
+// ── SUMMARY ───────────────────────────────────────────────────────────────────
 function renderSummary(){
   const am=activeMembers();
-  const totalR=SPONSORS.reduce((s,r)=>s+r.amount,0);
-  const urgent=SPONSORS.filter(s=>s.days<=60);
+  const allEv=[...(DATA.events25||[]),...(DATA.events26||[])];
+  const totalRev=SPONSORS.reduce((s,x)=>s+x.amount,0);
+  const urgent=SPONSORS.filter(s=>s.days<=90||s.paid!=='Paid'&&s.paid!=='Paid to National');
   const tiers={1:0,2:0,3:0,4:0};
   TARGETS.forEach(t=>{tiers[parseInt(tierFor(t).replace('Tier ',''))]++;});
 
   document.getElementById('sum-m').innerHTML=[
-    metric('Active members',am.length||'—',DATA.ccr?'from CCR export':'upload CCR to see','success'),
-    metric('Contracted revenue (2026)','$'+totalR.toLocaleString(),'16 sponsors'),
-    metric('Total 2025+2026 attendances',(DATA.events25?.length||0)+(DATA.events26?.length||0)||'—','confirmed attended'),
-    metric('Renewals ≤60 days',urgent.length,urgent.map(s=>s.name).join(' · ')||'none',urgent.length?'danger':''),
-    metric('Pipeline: Tier 1+2',tiers[1]+tiers[2],'of 26 accounts',tiers[1]+tiers[2]>3?'success':'warn'),
+    metric('Active members',am.length,'from CCR upload'),
+    metric('Contracted revenue 2026',fmt$(totalRev),'16 sponsors'),
+    metric('Total event attendances',allEv.length,'2025 + 2026'),
+    metric('Renewals ≤90 days',urgent.length,urgent.length?urgent.map(s=>s.name).join(' · '):'none',urgent.length?'danger':''),
+    metric('Pipeline Tier 1+2',tiers[1]+tiers[2],'of 26 target accounts'),
   ].join('');
 
-  const urgR=SPONSORS.filter(s=>s.days<=90).sort((a,b)=>a.days-b.days);
-  document.getElementById('urgent-tbl').innerHTML=`<table class="tbl"><thead><tr><th>Sponsor</th><th>Tier</th><th>Expires</th><th>Days left</th><th>Payment</th><th>Contact</th><th>Action needed</th></tr></thead><tbody>${urgR.map(s=>`<tr><td><strong>${s.name}</strong></td><td>${tbadge(s.tier)}</td><td>${s.expires}</td><td><span class="badge ${s.days<=30?'b-red':s.days<=60?'b-amber':'b-blue'}">${s.days}d</span></td><td><span class="badge ${s.paid==='Paid'?'b-green':'b-red'}">${s.paid}</span></td><td style="font-size:10px;color:var(--blue)">${s.contact}</td><td style="font-size:10px;color:var(--text2)">${s.days<=60?'Initiate renewal conversation now':'Monitor'}</td></tr>`).join('')}</tbody></table>`;
+  // Tier revenue donut
+  destroyChart('cTier');
+  const tierGroups={Jade:0,Silver:0,Bronze:0,Supporter:0};
+  SPONSORS.forEach(s=>tierGroups[s.tier]=(tierGroups[s.tier]||0)+s.amount);
+  const tc=document.getElementById('cTier');
+  if(tc){
+    CHARTS.cTier=new Chart(tc,{
+      type:'doughnut',
+      data:{
+        labels:Object.keys(tierGroups),
+        datasets:[{data:Object.values(tierGroups),backgroundColor:['#E83402','#646787','#FF9D65','#B0B0C0'],borderWidth:2}]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}
+    });
+  }
 
-  const hv=SPONSORS.filter(s=>s.value>0);
-  dc('cVal');CHARTS['cVal']=new Chart(document.getElementById('cVal'),{type:'bar',data:{labels:hv.map(s=>s.name),datasets:[{label:'Contracted',data:hv.map(s=>s.amount),backgroundColor:'#171B4B',borderWidth:0},{label:'Value delivered',data:hv.map(s=>s.value),backgroundColor:'#E83402',borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'$'+ctx.raw.toLocaleString()}}},scales:{x:{ticks:{font:{size:9},maxRotation:45,autoSkip:false}},y:{ticks:{callback:v=>'$'+(v/1000)+'k'}}}}});
+  // Pipeline donut
+  destroyChart('cPT');
+  const pc=document.getElementById('cPT');
+  if(pc){
+    CHARTS.cPT=new Chart(pc,{
+      type:'doughnut',
+      data:{
+        labels:['Tier 1 — High','Tier 2 — Warm','Tier 3 — Contact','Tier 4 — Cold'],
+        datasets:[{data:[tiers[1],tiers[2],tiers[3],tiers[4]],backgroundColor:['#2E7D32','#FF9D65','#171B4B','#CCCCCC'],borderWidth:2}]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}
+    });
+  }
 
-  const tg={};SPONSORS.forEach(s=>{tg[s.tier]=(tg[s.tier]||0)+s.amount;});
-  const tc={Jade:'#E83402',Silver:'#171B4B',Bronze:'#FF9D65',Supporter:'#646787'};
-  dc('cTier');CHARTS['cTier']=new Chart(document.getElementById('cTier'),{type:'doughnut',data:{labels:Object.keys(tg),datasets:[{data:Object.values(tg),backgroundColor:Object.keys(tg).map(t=>tc[t]||'#ccc'),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.label+': $'+ctx.raw.toLocaleString()}}}}});
-  document.getElementById('tier-leg').innerHTML=Object.entries(tg).map(([t,v])=>`<span class="li"><span class="ld" style="background:${tc[t]||'#ccc'}"></span>${t} $${(v/1000).toFixed(0)}K</span>`).join('');
+  // Urgent table
+  document.getElementById('urgent-tbl').innerHTML=urgent.length
+    ?'<table class="tbl"><thead><tr><th>Sponsor</th><th>Tier</th><th>Expires</th><th>Days</th><th>Issue</th><th>Contact</th></tr></thead><tbody>'+
+      urgent.map(s=>'<tr><td><strong>'+s.name+'</strong></td><td>'+s.tier+'</td><td>'+s.expires+'</td><td style="color:#E83402;font-weight:500">'+s.days+'</td><td>'+(s.paid!=='Paid'&&s.paid!=='Paid to National'?'Payment pending':'Renewal due')+'</td><td>'+(s.contact||'—')+(s.email?' &nbsp;<a href="mailto:'+s.email+'">'+s.email+'</a>':'')+'</td></tr>').join('')+
+      '</tbody></table>'
+    :'<p style="color:#999;padding:8px">No urgent renewals within 90 days.</p>';
 
-  dc('cPT');CHARTS['cPT']=new Chart(document.getElementById('cPT'),{type:'doughnut',data:{labels:['Tier 1','Tier 2','Tier 3','Tier 4'],datasets:[{data:[tiers[1],tiers[2],tiers[3],tiers[4]],backgroundColor:['#E83402','#FF9D65','#171B4B','#D8D9E1'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'50%',plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.label+': '+ctx.raw+' accounts'}}},onClick:()=>showPage('pipeline',document.querySelector('[onclick*="pipeline"]'))}});
+  // Value chart
+  destroyChart('cVal');
+  const vc=document.getElementById('cVal');
+  const spWithValue=SPONSORS.filter(s=>s.valueD>0);
+  if(vc&&spWithValue.length){
+    CHARTS.cVal=new Chart(vc,{
+      type:'bar',
+      data:{
+        labels:spWithValue.map(s=>s.name),
+        datasets:[
+          {label:'Contracted',data:spWithValue.map(s=>s.amount),backgroundColor:'#171B4B'},
+          {label:'Value Delivered',data:spWithValue.map(s=>s.valueD),backgroundColor:'#E83402'}
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{x:{ticks:{font:{size:10}}}}}
+    });
+  }
 }
 
-// MEMBERSHIP
+// ── MEMBERSHIP ────────────────────────────────────────────────────────────────
 function renderMembership(){
   const am=activeMembers();
-  if(!am.length){document.getElementById('mem-m').innerHTML=metric('Status','Upload CCR','to see membership data');return;}
-  const corp=am.filter(r=>{const sp=memSponsor(r);return sp&&sp!=='nan';});
-  const self=am.length-corp.length;
-  const now=new Date();
-  const exp=am.filter(r=>{const e=memExp(r);if(!e||e==='nan')return false;try{const d=new Date(e.replace(/-/g,'/'));const diff=(d-now)/864e5;return diff>=-5&&diff<=60;}catch(e){return false;}});
-  const ec={};am.forEach(r=>{const e=canon(memEmp(r));if(e)ec[e]=(ec[e]||0)+1;});
-  const topE=Object.entries(ec).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  const expiringSoon=am.filter(r=>{const e=memExp(r);return e&&(e.includes('2026/05')||e.includes('2026/06')||e.includes('2026/04'));});
+  const corpSponsored=am.filter(r=>memSponsor(r)&&memSponsor(r)!=='');
+  const selfPaid=am.filter(r=>!memSponsor(r)||memSponsor(r)==='');
 
   document.getElementById('mem-m').innerHTML=[
-    metric('Active members',am.length,'current CCR snapshot','success'),
-    metric('Corporate-sponsored',corp.length,Math.round(corp.length/am.length*100)+'% of active'),
-    metric('Self-paid',self,Math.round(self/am.length*100)+'% of active'),
-    metric('Expiring ≤60 days',exp.length,'flag for VP of Membership',exp.length>5?'warn':''),
+    metric('Active members',am.length,'from CCR'),
+    metric('Corporate-sponsored',corpSponsored.length,Math.round(corpSponsored.length/Math.max(am.length,1)*100)+'% of active'),
+    metric('Self-paid',selfPaid.length,Math.round(selfPaid.length/Math.max(am.length,1)*100)+'% of active'),
+    metric('Expiring soon',expiringSoon.length,'Apr–Jun 2026',expiringSoon.length>10?'warn':''),
   ].join('');
 
-  const regMonths={};am.forEach(r=>{const rm=String(getF(r,'Registration Year/Month','Registration Month')||'');if(rm&&rm!=='nan')regMonths[rm]=(regMonths[rm]||0)+1;});
-  const sortedMonths=Object.keys(regMonths).sort();
-  dc('cTrend');if(document.getElementById('cTrend'))CHARTS['cTrend']=new Chart(document.getElementById('cTrend'),{type:'line',data:{labels:sortedMonths,datasets:[{label:'Registrations',data:sortedMonths.map(m=>regMonths[m]),borderColor:'#E83402',backgroundColor:'rgba(232,52,2,0.07)',pointBackgroundColor:'#E83402',tension:0.3,fill:true,borderWidth:2,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9},maxRotation:45,autoSkip:true,maxTicksLimit:20}},y:{ticks:{stepSize:1}}}}});
-  dc('cSplit');
-  document.getElementById('split-leg').innerHTML=`<span class="li"><span class="ld" style="background:#1A1A2E"></span>Corp-sponsored ${corp.length} (${Math.round(corp.length/am.length*100)}%)</span><span class="li"><span class="ld" style="background:#0F6E56"></span>Self-paid ${self} (${Math.round(self/am.length*100)}%)</span>`;
-  CHARTS['cSplit']=new Chart(document.getElementById('cSplit'),{type:'doughnut',data:{labels:['Corporate-sponsored','Self-paid'],datasets:[{data:[corp.length,self],backgroundColor:['#171B4B','#E83402'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});
+  // Trend chart by registration month
+  destroyChart('cTrend');
+  const tc=document.getElementById('cTrend');
+  if(tc&&am.length){
+    const byMonth={};
+    am.forEach(r=>{
+      const rm=String(getF(r,'Registration Year/Month','Registration Month')||'');
+      if(rm&&rm.match(/\d{4}\/\d{2}/))byMonth[rm]=(byMonth[rm]||0)+1;
+    });
+    const months=Object.keys(byMonth).sort();
+    CHARTS.cTrend=new Chart(tc,{
+      type:'line',
+      data:{labels:months,datasets:[{label:'Registrations',data:months.map(m=>byMonth[m]),borderColor:'#E83402',backgroundColor:'rgba(232,52,2,0.1)',tension:0.3,fill:true}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9},maxRotation:45}}}}
+    });
+  }
 
-  dc('cEmps');
-  CHARTS['cEmps']=new Chart(document.getElementById('cEmps'),{type:'bar',data:{labels:topE.map(e=>e[0]),datasets:[{data:topE.map(e=>e[1]),backgroundColor:topE.map(e=>TNAMES.includes(e[0])?'#E83402':'#171B4B'),borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{font:{size:10}}},x:{ticks:{stepSize:1}}}}});
+  // Top employers
+  destroyChart('cEmps');
+  const ec=document.getElementById('cEmps');
+  if(ec&&am.length){
+    const empCount={};
+    am.forEach(r=>{const e=memEmp(r);if(e)empCount[e]=(empCount[e]||0)+1;});
+    const top=Object.entries(empCount).sort((a,b)=>b[1]-a[1]).slice(0,15);
+    CHARTS.cEmps=new Chart(ec,{
+      type:'bar',
+      data:{labels:top.map(e=>e[0]),datasets:[{data:top.map(e=>e[1]),backgroundColor:top.map(e=>TNAMES.includes(e[0])?'#E83402':'#171B4B')}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10}}}}}
+    });
+  }
 
-  const ctb={};
-  am.forEach(r=>{
-    const sp=memSponsor(r);const spC=canon(sp);
-    if(sp&&sp!=='nan'&&!isCurrentSponsor(sp))
-      ctb[spC||sp]=(ctb[spC||sp]||0)+1;
-  });
-  const ns=Object.entries(ctb).sort((a,b)=>b[1]-a[1]);
-  document.getElementById('ct-tbl').innerHTML=ns.length
-    ?`<table class="tbl"><thead><tr><th>Organization (consolidated)</th><th>Active members they fund</th><th>Why this matters</th></tr></thead><tbody>${ns.map(([sp,cnt])=>`<tr><td><strong>${sp}</strong></td><td>${cnt}</td><td style="font-size:10px;color:var(--text2)">Already investing in Ascend memberships — open sponsor conversation</td></tr>`).join('')}</tbody></table>`
-    :'<div class="empty">No non-sponsor corp ticket buyers found — or upload CCR</div>';
+  // Corp non-sponsors table
+  if(am.length){
+    const nonSp={};
+    am.forEach(r=>{
+      const sp=memSponsor(r);
+      if(sp&&!isCurrentSponsor(sp)){
+        const key=sp.toLowerCase();
+        if(!nonSp[key])nonSp[key]={display:sp,count:0};
+        nonSp[key].count++;
+      }
+    });
+    const rows=Object.values(nonSp).sort((a,b)=>b.count-a.count);
+    document.getElementById('ct-tbl').innerHTML=rows.length
+      ?'<table class="tbl"><thead><tr><th>Promo code / Company</th><th>Members funded</th></tr></thead><tbody>'+
+        rows.map(r=>'<tr><td>'+r.display+'</td><td>'+r.count+'</td></tr>').join('')+'</tbody></table>'
+      :(am.length?'<p style="color:#999">No data — upload CCR file.</p>':'<p style="color:#999">Upload CCR to see corporate ticket buyers.</p>');
+  }
 
-  document.getElementById('exp-tbl').innerHTML=exp.length
-    ?`<table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Employer</th><th>Expires</th></tr></thead><tbody>${exp.slice(0,25).map(r=>`<tr><td>${getF(r,'First_Name','First Name')} ${getF(r,'Last_Name','Last Name')}</td><td style="color:var(--blue);font-size:10px">${memEmail(r)}</td><td>${memEmp(r)}</td><td><span class="badge b-amber">${memExp(r)}</span></td></tr>`).join('')}</tbody></table>`
-    :'<div class="empty">No members expiring within 60 days</div>';
-  if(exp.length>0&&document.getElementById('email-draft-zone')){
-    const expEmails=exp.filter(r=>memEmail(r)).map(r=>memEmail(r)).join('; ');
-    const emailDraft='Subject: Your Ascend Midwest membership is expiring soon\n\nHi [First Name],\n\nYour Ascend Midwest membership is expiring within the next 60 days. We hope you will renew and continue to be part of our community.\n\nRenewing is quick at ascendleadership.org.\n\nWarm regards,\n[Your Name]\nAscend Midwest Leadership Team';
-    document.getElementById('email-draft-zone').innerHTML='<div style="background:#171B4B;border-radius:10px;padding:14px 16px;margin-top:10px"><div style="font-family:Playfair Display,serif;font-size:14px;color:#FF9D65;margin-bottom:10px;font-weight:600">'+exp.length+' members expiring within 60 days</div><div style="font-size:11px;color:rgba(255,255,255,.6);margin-bottom:10px;font-family:Nunito,sans-serif;line-height:1.5"><strong style="color:#FF9D65">Member emails:</strong><br><span id="exp-emails" style="color:rgba(255,255,255,.75);word-break:break-all">'+expEmails+'</span></div><div id="email-body" style="font-family:Nunito,sans-serif;font-size:11px;line-height:1.8;white-space:pre-wrap;color:rgba(255,255,255,.85);background:rgba(255,255,255,.06);padding:12px;border-radius:6px;margin-bottom:10px">'+emailDraft+'</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="navigator.clipboard.writeText(document.getElementById(\'email-body\').textContent).then(()=>this.textContent=\'Copied!\')" style="padding:6px 14px;background:#E83402;color:white;border:none;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;font-family:Nunito,sans-serif;text-transform:uppercase;letter-spacing:.05em">Copy draft</button><button onclick="navigator.clipboard.writeText(document.getElementById(\'exp-emails\').textContent).then(()=>this.textContent=\'Copied!\')" style="padding:6px 14px;background:rgba(255,255,255,.12);color:white;border:none;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer;font-family:Nunito,sans-serif;text-transform:uppercase;letter-spacing:.05em">Copy emails only</button></div></div>';
-  }}
+  // Expiring members table
+  document.getElementById('exp-tbl').innerHTML=expiringSoon.length
+    ?'<table class="tbl"><thead><tr><th>Name</th><th>Employer</th><th>Email</th><th>Expires</th></tr></thead><tbody>'+
+      expiringSoon.slice(0,50).map(r=>'<tr><td>'+getF(r,'First_Name','First Name')+'&nbsp;'+getF(r,'Last_Name','Last Name')+'</td><td>'+memEmp(r)+'</td><td><a href="mailto:'+memEmail(r)+'">'+memEmail(r)+'</a></td><td>'+memExp(r)+'</td></tr>').join('')+
+      '</tbody></table>'
+    :'<p style="color:#999">No members expiring in the next 60 days.</p>';
+}
 
-// EVENTS
-function setEvYear(yr,el){EV_YEAR=yr;document.querySelectorAll('#ev-year-filter .filter-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderEvents();}
-
+// ── EVENTS ────────────────────────────────────────────────────────────────────
+function filterEvents(y){EV_YEAR=y;renderEvents();}
 function renderEvents(){
-  const att=allAttended();
-  if(!att.length){document.getElementById('ev-m').innerHTML=metric('Status','Upload event files','2025 tracker and/or 2026 Check-In App');return;}
-  const evs=[...new Set(att.map(r=>evName(r)).filter(Boolean))];
-  const uniq=new Set(att.map(r=>evEmail(r)).filter(Boolean)).size;
-  const y25=att.filter(r=>evYear(r)==='2025').length;
-  const y26=att.filter(r=>evYear(r)==='2026').length;
+  let ev=[...(DATA.events25||[]),...(DATA.events26||[])];
+  if(EV_YEAR!=='all')ev=ev.filter(r=>evYear(r)===EV_YEAR);
 
+  const unique=new Set(ev.map(r=>evEmail(r))).size;
   document.getElementById('ev-m').innerHTML=[
-    metric('Events in view',evs.length,'unique events'),
-    metric('Total attendances',att.length,'confirmed'),
-    metric('Unique attendees',uniq,'by email'),
-    metric('2025 attendances',y25,'from event tracker'),
-    metric('2026 attendances',y26,'from Check-In App'),
+    metric('Total attendances',ev.length,'all events'),
+    metric('Unique attendees',unique,'distinct emails'),
+    metric('Events tracked',new Set(ev.map(r=>evEvent(r))).size,'unique events'),
   ].join('');
 
-  const em={};att.forEach(r=>{const e=evName(r);if(e)em[e]=(em[e]||0)+1;});
-  const evL=Object.keys(em).map(e=>e.replace(/Ascend Midwest:?\s*/,'').substring(0,30));
-  dc('cEvA');CHARTS['cEvA']=new Chart(document.getElementById('cEvA'),{type:'bar',data:{labels:evL,datasets:[{data:Object.values(em),backgroundColor:att.filter((r,i,a)=>a.findIndex(x=>evName(x)===evName(r))===i).map(r=>evYear(r)==='2026'?'#E83402':'#171B4B'),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{title:items=>`${Object.keys(em)[items[0].dataIndex]}`,label:ctx=>ctx.raw+' attendees'}}},scales:{x:{ticks:{font:{size:9},maxRotation:45,autoSkip:false}},y:{ticks:{stepSize:5}}}}});
+  // Attendance by event
+  destroyChart('cEvA');
+  const evc=document.getElementById('cEvA');
+  if(evc&&ev.length){
+    const byEv={};
+    ev.forEach(r=>{const e=evEvent(r)||'Unknown';const y=evYear(r);if(!byEv[e])byEv[e]={count:0,year:y};byEv[e].count++;});
+    const sorted=Object.entries(byEv).sort((a,b)=>b[1].count-a[1].count).slice(0,20);
+    CHARTS.cEvA=new Chart(evc,{
+      type:'bar',
+      data:{
+        labels:sorted.map(e=>e[0].length>30?e[0].slice(0,30)+'…':e[0]),
+        datasets:[{data:sorted.map(e=>e[1].count),backgroundColor:sorted.map(e=>e[1].year==='2025'?'#171B4B':'#E83402')}]
+      },
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{font:{size:9}}}}}
+    });
+  }
 
-  const oc={};att.forEach(r=>{const o=evOrg(r);if(o)oc[o]=(oc[o]||0)+1;});
-  const top=Object.entries(oc).sort((a,b)=>b[1]-a[1]).slice(0,15);
-  dc('cEvO');CHARTS['cEvO']=new Chart(document.getElementById('cEvO'),{type:'bar',data:{labels:top.map(e=>e[0]),datasets:[{data:top.map(e=>e[1]),backgroundColor:top.map(e=>TNAMES.includes(e[0])?'#E83402':'#171B4B'),borderWidth:0}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{font:{size:10}}}}}});
+  // Top orgs
+  destroyChart('cEvO');
+  const eoc=document.getElementById('cEvO');
+  if(eoc&&ev.length){
+    const byOrg={};
+    ev.forEach(r=>{const o=evOrg(r);if(o)byOrg[o]=(byOrg[o]||0)+1;});
+    const top=Object.entries(byOrg).sort((a,b)=>b[1]-a[1]).slice(0,15);
+    CHARTS.cEvO=new Chart(eoc,{
+      type:'bar',
+      data:{labels:top.map(e=>e[0]),datasets:[{data:top.map(e=>e[1]),backgroundColor:top.map(e=>TNAMES.includes(e[0])?'#E83402':'#171B4B')}]},
+      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10}}},y:{ticks:{font:{size:10}}}}}
+    });
+  }
 
+  // Target accounts table
   const ta={};
-  att.forEach(r=>{
+  ev.forEach(r=>{
     const o=evOrg(r);
-    const match=TARGETS.find(t=>o.toLowerCase().includes(t.name.toLowerCase().substring(0,7))||t.name.toLowerCase().includes(o.toLowerCase().substring(0,6)&&o.length>4?o.toLowerCase().substring(0,6):'XXXXXXX'));
+    const match=TARGETS.find(t=>o.toLowerCase().includes(t.name.toLowerCase().slice(0,6)));
     if(match){
       if(!ta[match.name])ta[match.name]={people:[],emails:[],events:new Set(),years:new Set()};
-      const fn=`${getF(r,'First_Name','First Name')} ${getF(r,'Last_Name','Last Name')}`.trim();
-      const evEm=String(getF(r,'Email','Email Address','email')||'').toLowerCase();
-      if(fn&&!ta[match.name].people.includes(fn)){ta[match.name].people.push(fn);if(evEm)ta[match.name].emails.push(evEm);}
-      ta[match.name].events.add(evName(r));
+      ta[match.name].people.push(getF(r,'First_Name','First Name')+' '+getF(r,'Last_Name','Last Name'));
+      ta[match.name].emails.push(evEmail(r));
+      ta[match.name].events.add(evEvent(r));
       ta[match.name].years.add(evYear(r));
     }
   });
-  document.getElementById('tev-tbl').innerHTML='<div style="overflow-x:auto;max-height:420px;overflow-y:auto"><table class="tbl"><thead style="position:sticky;top:0;background:#F8F8F8"><tr><th>Company</th><th>Year(s)</th><th>Events</th><th>Attendees</th><th>Emails</th></tr></thead><tbody>'+TARGETS.map(t=>{const d=ta[t.name];if(d&&d.people.length>0){return`<tr><td><strong>${t.name}</strong></td><td>${[...d.years].join(', ')}</td><td style="font-size:10px">${[...d.events].join('; ')}</td><td style="font-size:10px">${d.people.join('; ')}</td><td style="font-size:10px;color:#E83402">${d.emails.join('; ')||'—'}</td></tr>`;}else{return`<tr style="opacity:.5"><td><strong>${t.name}</strong></td><td>—</td><td style="font-size:10px">No attendees yet</td><td>—</td><td style="font-size:10px;color:#E83402">${t.email||'—'}</td></tr>`;}}).join('')+'</tbody></table></div>nction filterSponsors(f,el){SP_FILTER=f;document.querySelectorAll('#sp-filter .filter-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderSponsorTable();}
 
+  document.getElementById('tev-tbl').innerHTML='<div style="overflow-x:auto;max-height:420px;overflow-y:auto"><table class="tbl"><thead style="position:sticky;top:0;background:#F8F8F8"><tr><th>Company</th><th>Tier</th><th>Year(s)</th><th>Attendees</th><th>Emails</th></tr></thead><tbody>'+
+    TARGETS.map(t=>{
+      const d=ta[t.name];
+      if(d&&d.people.length>0){
+        return '<tr><td><strong>'+t.name+'</strong></td><td>'+t.tier+'</td><td>'+[...d.years].join(', ')+'</td><td style="font-size:11px">'+d.people.join('; ')+'</td><td style="font-size:11px;color:#E83402">'+d.emails.join('; ')+'</td></tr>';
+      }else{
+        return '<tr style="opacity:.5"><td><strong>'+t.name+'</strong></td><td>'+t.tier+'</td><td>—</td><td style="font-size:11px;color:#999">No attendees yet</td><td>—</td></tr>';
+      }
+    }).join('')+
+    '</tbody></table></div>';
+}
+
+// ── SPONSORSHIP ───────────────────────────────────────────────────────────────
+function filterSponsors(f,el){
+  SP_FILTER=f;
+  document.querySelectorAll('#sp-filter .filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderSponsorTable();
+}
+function renderSponsorship(){
+  const totalRev=SPONSORS.reduce((s,x)=>s+x.amount,0);
+  const totalVal=SPONSORS.filter(s=>s.valueD>0).reduce((s,x)=>s+x.valueD,0);
+  const unpaid=SPONSORS.filter(s=>s.paid==='Unpaid');
+  document.getElementById('sp-m').innerHTML=[
+    metric('Total contracted',fmt$(totalRev),'2026 season'),
+    metric('Est. value delivered',fmt$(totalVal),'sponsors with data'),
+    metric('Payment pending',unpaid.length,unpaid.length?unpaid.map(s=>s.name).join(', '):'all paid',unpaid.length?'warn':''),
+    metric('Active sponsors',SPONSORS.length,'across 4 tiers'),
+  ].join('');
+  renderSponsorTable();
+}
 function renderSponsorTable(){
   let sp=SPONSORS;
   if(SP_FILTER!=='all'&&SP_FILTER!=='urgent')sp=sp.filter(s=>s.tier===SP_FILTER);
-  if(SP_FILTER==='urgent')sp=sp.filter(s=>s.days<=90||s.paid!=='Paid');
-  document.getElementById('sp-tbl').innerHTML=`<table class="tbl"><thead><tr><th>Sponsor</th><th>Tier</th><th>Contracted</th><th>Expires</th><th>Days left</th><th>Payment</th><th>Value delivered</th><th>Delta</th><th>Contact</th></tr></thead><tbody>${sp.map(s=>{const delta=s.value>0?s.value-s.amount:null;return`<tr><td><strong>${s.name}</strong></td><td>${tbadge(s.tier)}</td><td>$${s.amount.toLocaleString()}</td><td>${s.expires}</td><td><span class="badge ${s.days<=30?'b-red':s.days<=60?'b-amber':'b-blue'}">${s.days}d</span></td><td><span class="badge ${s.paid==='Paid'?'b-green':'b-red'}">${s.paid}</span></td><td>${s.value>0?'$'+s.value.toLocaleString():'—'}</td><td>${delta!==null?`<span class="badge ${delta>=0?'b-amber':'b-red'}">${delta>=0?'+':''}\$${delta.toLocaleString()}</span>`:'—'}</td><td style="font-size:10px;color:var(--blue)">${s.contact}</td></tr>`;}).join('')}</tbody></table>
-  <p style="font-size:10px;color:var(--text3);margin-top:6px;padding:0 4px">Delta = value delivered minus contracted amount. Positive = over-delivering benefits relative to sponsorship paid. Large positive numbers (West Monroe +$8,898) indicate we should negotiate a higher tier at renewal.</p>`;
+  if(SP_FILTER==='urgent')sp=sp.filter(s=>s.days<=90||s.paid==='Unpaid');
+  document.getElementById('sp-tbl').innerHTML='<table class="tbl"><thead><tr><th>Sponsor</th><th>Tier</th><th>Contracted</th><th>Expires</th><th>Days</th><th>Paid</th><th>Value Delivered</th><th>Contact</th></tr></thead><tbody>'+
+    sp.map(s=>'<tr style="'+(s.days<=60||s.paid==='Unpaid'?'background:#FFF5F2':'')+'"><td><strong>'+s.name+'</strong></td><td>'+s.tier+'</td><td>'+fmt$(s.amount)+'</td><td>'+s.expires+'</td><td style="color:'+(s.days<=60?'#E83402':'inherit')+';font-weight:'+(s.days<=60?'600':'400')+'">'+s.days+'</td><td style="color:'+(s.paid==='Unpaid'?'#E83402':'inherit')+'">'+s.paid+'</td><td>'+fmt$(s.valueD)+'</td><td>'+(s.email?'<a href="mailto:'+s.email+'">'+s.contact+'</a>':s.contact||'—')+'</td></tr>').join('')+
+    '</tbody></table>';
 }
 
-function renderSponsorship(){
-  const totalR=SPONSORS.reduce((s,r)=>s+r.amount,0);
-  const totalV=SPONSORS.filter(s=>s.value>0).reduce((s,r)=>s+r.value,0);
-  const unpaid=SPONSORS.filter(s=>s.paid!=='Paid');
-  document.getElementById('sp-m').innerHTML=[
-    metric('Total contracted','$'+totalR.toLocaleString(),'16 sponsors · 2026'),
-    metric('Est. value delivered','$'+totalV.toLocaleString(),'sponsors with data'),
-    metric('Payment pending',unpaid.length,unpaid.map(s=>s.name).join(' · ')||'none',unpaid.length?'warn':''),
-    metric('Sponsors renewing ≤90d',SPONSORS.filter(s=>s.days<=90).length,SPONSORS.filter(s=>s.days<=90).map(s=>s.name).join(' · '),'warn'),
-  ].join('');
-  renderSponsorTable();
-
-  const hv=SPONSORS.filter(s=>s.value>0);
-  dc('cSpV');CHARTS['cSpV']=new Chart(document.getElementById('cSpV'),{type:'bar',data:{labels:hv.map(s=>s.name),datasets:[{label:'Contracted',data:hv.map(s=>s.amount),backgroundColor:'#171B4B',borderWidth:0},{label:'Value delivered',data:hv.map(s=>s.value),backgroundColor:'#E83402',borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': $'+ctx.raw.toLocaleString()}}},scales:{x:{ticks:{font:{size:9},maxRotation:45,autoSkip:false}},y:{ticks:{callback:v=>'$'+(v/1000)+'k'}}}}});
-
-  const tg={};SPONSORS.forEach(s=>{tg[s.tier]=(tg[s.tier]||0)+s.amount;});
-  const tc={Jade:'#E83402',Silver:'#171B4B',Bronze:'#FF9D65',Supporter:'#646787'};
-  dc('cSpT');CHARTS['cSpT']=new Chart(document.getElementById('cSpT'),{type:'doughnut',data:{labels:Object.keys(tg),datasets:[{data:Object.values(tg),backgroundColor:Object.keys(tg).map(t=>tc[t]||'#ccc'),borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'50%',plugins:{legend:{position:'right',labels:{boxWidth:10,font:{size:11}}},tooltip:{callbacks:{label:ctx=>ctx.label+': $'+ctx.raw.toLocaleString()}}}}});
-  document.getElementById('sp-tier-leg').innerHTML=Object.entries(tg).map(([t,v])=>`<span class="li"><span class="ld" style="background:${tc[t]||'#ccc'}"></span>${t} $${(v/1000).toFixed(0)}K</span>`).join('');
+// ── PIPELINE ──────────────────────────────────────────────────────────────────
+function filterPipeline(f,el){
+  PP_FILTER=f;
+  document.querySelectorAll('#pp-filter .filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderPipelineTable();
 }
-
-// PIPELINE
-function filterPipeline(f,el){PP_FILTER=f;document.querySelectorAll('#pp-filter .filter-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderPipelineTable();}
-
-function renderPipelineTable(){
-  const am=activeMembers();const att=allAttended();
-  const mByT={},aByT={},pByT={},eByT={};
-  TARGETS.forEach(t=>{mByT[t.name]=0;aByT[t.name]=0;pByT[t.name]=[];eByT[t.name]=[];});
-  am.forEach(r=>{const e=memEmp(r);const match=TARGETS.find(t=>e.toLowerCase().includes(t.name.toLowerCase().substring(0,7)));if(match)mByT[match.name]++;});
-  att.forEach(r=>{const o=evOrg(r);const match=TARGETS.find(t=>o.toLowerCase().includes(t.name.toLowerCase().substring(0,7)));if(match){aByT[match.name]++;const fn=`${getF(r,'First_Name','First Name')} ${getF(r,'Last_Name','Last Name')}`.trim();if(fn&&!pByT[match.name].includes(fn)){pByT[match.name].push(fn);const em=String(getF(r,'Email','Email Address','email')||'').toLowerCase();if(em)eByT[match.name].push(em);}}});
-
-  const tierOf=t=>{const m=mByT[t.name];const a=aByT[t.name];const hc=t.contact||t.notes;if(m>=1&&a>=2)return'Tier 1';if(m>=1||a>=2)return'Tier 2';if(hc||m>0||a>0)return'Tier 3';return'Tier 4';};
-  const nextStep=tier=>({
-    'Tier 1':'Open sponsor conversation — they already believe in the value',
-    'Tier 2':'Leverage active member as internal champion for intro',
-    'Tier 3':'Follow up with named contact before relationship goes cold',
-    'Tier 4':'LinkedIn research — find ERG/DEI lead before any outreach',
-  }[tier]);
-
-  let targets=TARGETS;
-  if(PP_FILTER!=='all'&&PP_FILTER!=='has-contact')targets=targets.filter(t=>tierOf(t)===PP_FILTER);
-  if(PP_FILTER==='has-contact')targets=targets.filter(t=>t.contact);
-
-  document.getElementById('pp-tbl').innerHTML=`<table class="tbl"><thead><tr><th>F-Rank</th><th>Company</th><th>Industry</th><th>Tier</th><th>Members</th><th>Att.</th><th>Event attendees + emails</th><th>Named contacts</th><th>Notes</th><th>Next step</th></tr></thead><tbody>${targets.map(t=>{const tier=tierOf(t);return`<tr><td style="font-size:10px;color:var(--text3)">${t.rank}</td><td><strong>${t.name}</strong></td><td style="font-size:10px;color:var(--text2)">${t.ind}</td><td>${pbadge(tier)}</td><td>${mByT[t.name]||'—'}</td><td>${aByT[t.name]||'—'}</td><td style="font-size:10px">${(pByT[t.name]||[]).slice(0,2).map((n,i)=>n+((eByT[t.name]||[])[i]?' ('+(eByT[t.name]||[])[i]+')':'')).join('; ')||'—'}</td><td style="font-size:10px;color:#E83402">${t.contact||'—'}</td><td style="font-size:10px;color:var(--text2);max-width:120px">${t.notes||''}</td><td style="font-size:10px;color:var(--text2)">${nextStep(tier)}</td></tr>`;}).join('')}</tbody></table>`;
-}
-
 function renderPipeline(){
-  const am=activeMembers();const att=allAttended();
   const tiers={1:0,2:0,3:0,4:0};
-  const mByT={},aByT={};
-  TARGETS.forEach(t=>{mByT[t.name]=0;aByT[t.name]=0;});
-  am.forEach(r=>{const e=memEmp(r);const match=TARGETS.find(t=>e.toLowerCase().includes(t.name.toLowerCase().substring(0,7)));if(match)mByT[match.name]++;});
-  att.forEach(r=>{const o=evOrg(r);const match=TARGETS.find(t=>o.toLowerCase().includes(t.name.toLowerCase().substring(0,7)));if(match)aByT[match.name]++;});
-  const tierOf=t=>{const m=mByT[t.name];const a=aByT[t.name];const hc=t.contact||t.notes;if(m>=1&&a>=2)return'Tier 1';if(m>=1||a>=2)return'Tier 2';if(hc||m>0||a>0)return'Tier 3';return'Tier 4';};
-  TARGETS.forEach(t=>{tiers[parseInt(tierOf(t).replace('Tier ',''))]++;});
-  const covered=tiers[1]+tiers[2]+tiers[3];
-  const withContact=TARGETS.filter(t=>t.contact).length;
-
+  TARGETS.forEach(t=>{tiers[parseInt(tierFor(t).replace('Tier ',''))]++;});
+  const withContact=TARGETS.filter(t=>t.contact&&t.contact!=='').length;
   document.getElementById('pp-m').innerHTML=[
-    metric('Coverage rate',Math.round(covered/TARGETS.length*100)+'%',covered+' of 26 with any connection',covered>5?'success':'warn'),
-    metric('Named contacts',withContact,'across '+TARGETS.length+' target accounts'),
-    metric('Tier 1 — High',tiers[1],'member + events','success'),
-    metric('Tier 2 — Warm',tiers[2],'member or events','warn'),
+    metric('Total target accounts',TARGETS.length,'Fortune 500 Midwest'),
+    metric('Tier 1 + 2',tiers[1]+tiers[2],'active engagement','success'),
+    metric('Named contacts',withContact,withContact+' of '+TARGETS.length+' have a contact'),
     metric('Tier 4 — Cold',tiers[4],'no connection yet'),
   ].join('');
   renderPipelineTable();
 }
+function renderPipelineTable(){
+  let pp=TARGETS;
+  if(PP_FILTER==='tier-1')pp=pp.filter(t=>tierFor(t)==='Tier 1');
+  else if(PP_FILTER==='tier-2')pp=pp.filter(t=>tierFor(t)==='Tier 2');
+  else if(PP_FILTER==='tier-3')pp=pp.filter(t=>tierFor(t)==='Tier 3');
+  else if(PP_FILTER==='tier-4')pp=pp.filter(t=>tierFor(t)==='Tier 4');
+  else if(PP_FILTER==='has-contact')pp=pp.filter(t=>t.contact&&t.contact!=='');
+  document.getElementById('pp-tbl').innerHTML='<table class="tbl"><thead><tr><th>Fortune Rank</th><th>Company</th><th>Industry</th><th>Tier</th><th>Contact</th></tr></thead><tbody>'+
+    pp.map(t=>'<tr><td style="color:#999;font-size:12px">'+t.rank+'</td><td><strong>'+t.name+'</strong></td><td style="font-size:12px">'+t.ind+'</td><td><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;background:'+(t.tier==='Tier 1'?'#E8F5E9':t.tier==='Tier 2'?'#FFF3E0':t.tier==='Tier 3'?'#E8EAF6':'#F5F5F5')+';color:'+tierColor(t.tier)+'">'+t.tier+'</span></td><td style="font-size:12px">'+(t.contact||'<span style="color:#999">No contact yet</span>')+'</td></tr>').join('')+
+    '</tbody></table>';
+}
 
-// INIT
-if (!restore()) renderSummary();
+// ── INIT ──────────────────────────────────────────────────────────────────────
+if(!restore())renderSummary();
 
-function shareSetup(){alert("To share with your team, email them this HTML file. They open it locally and upload their own copy of the data files.");}
+
 </script>
 </body>
 </html>
