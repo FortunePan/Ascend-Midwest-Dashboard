@@ -430,25 +430,23 @@ function loadFile(type,input){
       const wb=XLSX.read(e.target.result,{type:'array'});
       let data=[];
       if(type==='events26'){
-        const sn=wb.SheetNames.find(s=>s.toLowerCase().includes('master'))||wb.SheetNames[wb.SheetNames.length-1];
+        // Use 'Master Attendance - Attended' sheet - headers on row 1
+        const sn=wb.SheetNames.find(s=>s.toLowerCase().includes('master attendance'))||
+                 wb.SheetNames.find(s=>s.toLowerCase().includes('master'))||
+                 wb.SheetNames[wb.SheetNames.length-1];
         const ws=wb.Sheets[sn];
-        const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-        let hi=0;
-        for(let i=0;i<Math.min(25,raw.length);i++){
-          if(raw[i].some(c=>String(c).toLowerCase().includes('event_name')||String(c).toLowerCase().includes('first_name'))){hi=i;break;}
-        }
-        const hdrs=raw[hi];
-        data=raw.slice(hi+1)
-          .filter(r=>r.some(c=>c!==''&&c!==null))
-          .map(r=>{const o={};hdrs.forEach((h,idx)=>{o[h]=r[idx];});return o;})
-          .filter(r=>getF(r,'First_Name','First Name')!=='')
+        // Use sheet_to_json directly - headers are on row 1
+        const raw=XLSX.utils.sheet_to_json(ws,{defval:''});
+        data=raw.filter(r=>getF(r,'First_Name','First Name')!=='')
           .map(r=>({...r,_year:'2026',_attended:true}));
       }else if(type==='events25'){
         const ws=wb.Sheets[wb.SheetNames[0]];
         const raw=XLSX.utils.sheet_to_json(ws,{defval:''});
         data=raw.filter(r=>String(r['Attended']||'').trim()==='Yes').map(r=>({...r,_year:'2025',_attended:true}));
       }else{
-        const ws=wb.Sheets[wb.SheetNames[0]];
+        // CCR: read from 'Mdw All Time Membership' sheet (not sheet 0 which may be pivot)
+        const ccrSheet = wb.SheetNames.find(s=>s.toLowerCase().includes('membership')||s.toLowerCase().includes('all time')) || wb.SheetNames[0];
+        const ws=wb.Sheets[ccrSheet];
         data=XLSX.utils.sheet_to_json(ws,{defval:''});
       }
       DATA[type]=data;
@@ -597,6 +595,26 @@ function renderMembership(){
     });
   }
 
+  // Member type split donut
+  destroyChart('cSplit');
+  const sc=document.getElementById('cSplit');
+  if(sc&&am.length){
+    const corp=corpSponsored.length;
+    const self=selfPaid.length;
+    CHARTS.cSplit=new Chart(sc,{
+      type:'doughnut',
+      data:{
+        labels:['Corporate-sponsored','Self-paid'],
+        datasets:[{data:[corp,self],backgroundColor:['#E83402','#171B4B'],borderWidth:2}]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
+    });
+    const sl=document.getElementById('split-leg');
+    if(sl)sl.innerHTML=
+      '<span style="display:flex;align-items:center;gap:6px;font-size:12px"><span style="width:10px;height:10px;background:#E83402;border-radius:2px;display:inline-block"></span>Corporate '+corp+' ('+Math.round(corp/am.length*100)+'%)</span>'+
+      '<span style="display:flex;align-items:center;gap:6px;font-size:12px"><span style="width:10px;height:10px;background:#171B4B;border-radius:2px;display:inline-block"></span>Self-paid '+self+' ('+Math.round(self/am.length*100)+'%)</span>';
+  }
+
   // Top employers
   destroyChart('cEmps');
   const ec=document.getElementById('cEmps');
@@ -724,6 +742,39 @@ function renderSponsorship(){
     metric('Payment pending',unpaid.length,unpaid.length?unpaid.map(s=>s.name).join(', '):'all paid',unpaid.length?'warn':''),
     metric('Active sponsors',SPONSORS.length,'across 4 tiers'),
   ].join('');
+  // Tier donut chart
+  destroyChart('cSpT');
+  const spTc=document.getElementById('cSpT');
+  if(spTc){
+    const tg={Jade:0,Silver:0,Bronze:0,Supporter:0};
+    SPONSORS.forEach(s=>tg[s.tier]=(tg[s.tier]||0)+s.amount);
+    CHARTS.cSpT=new Chart(spTc,{
+      type:'doughnut',
+      data:{labels:Object.keys(tg),datasets:[{data:Object.values(tg),backgroundColor:['#E83402','#646787','#FF9D65','#B0B0C0'],borderWidth:2}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
+    });
+    const leg=document.getElementById('sp-tier-leg');
+    if(leg)leg.innerHTML=Object.entries(tg).map(([t,v])=>
+      '<span style="display:flex;align-items:center;gap:5px;font-size:12px"><span style="width:10px;height:10px;border-radius:2px;display:inline-block;background:'+({'Jade':'#E83402','Silver':'#646787','Bronze':'#FF9D65','Supporter':'#B0B0C0'}[t])+'"></span>'+t+' '+fmt$(v)+'</span>'
+    ).join('');
+  }
+  // Value vs contracted chart
+  destroyChart('cSpV');
+  const spVc=document.getElementById('cSpV');
+  const spWithVal=SPONSORS.filter(s=>s.valueD>0);
+  if(spVc&&spWithVal.length){
+    CHARTS.cSpV=new Chart(spVc,{
+      type:'bar',
+      data:{
+        labels:spWithVal.map(s=>s.name),
+        datasets:[
+          {label:'Contracted',data:spWithVal.map(s=>s.amount),backgroundColor:'#171B4B'},
+          {label:'Value Delivered',data:spWithVal.map(s=>s.valueD),backgroundColor:'#E83402'}
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'}},scales:{x:{ticks:{font:{size:9}}}}}
+    });
+  }
   renderSponsorTable();
 }
 function renderSponsorTable(){
