@@ -473,11 +473,16 @@ function showPage(id,el){
   renderPage(id);
 }
 function renderPage(id){
-  if(id==='summary')renderSummary();
-  else if(id==='membership')renderMembership();
-  else if(id==='events')renderEvents();
-  else if(id==='sponsorship')renderSponsorship();
-  else if(id==='pipeline')renderPipeline();
+  try{
+    if(id==='summary')renderSummary();
+    else if(id==='membership')renderMembership();
+    else if(id==='events')renderEvents();
+    else if(id==='sponsorship')renderSponsorship();
+    else if(id==='pipeline')renderPipeline();
+  }catch(e){
+    document.getElementById('storInfo').innerHTML='<span style="color:#E83402;font-weight:500">Error on '+id+' tab: '+e.message+'</span>';
+    console.error('Tab render error:',e);
+  }
 }
 function renderAll(){
   const active=document.querySelector('.page.active');
