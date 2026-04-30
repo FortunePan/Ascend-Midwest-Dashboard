@@ -252,6 +252,8 @@ body{font-family:'Nunito','Georgia',sans-serif;background:var(--bg);color:var(--
 
 <script>
 
+
+
 document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
 
 const CHARTS={};
@@ -821,6 +823,10 @@ function renderPipelineTable(){
 // ── INIT ──────────────────────────────────────────────────────────────────────
 if(!restore())renderSummary();
 
+window.addEventListener('error', function(e) {
+  var el = document.getElementById('storInfo');
+  if(el) el.innerHTML = '<span style="color:red;font-weight:bold">Error: ' + e.message + ' (line ' + e.lineno + '). Open browser console (F12) for details.</span>';
+});
 
 </script>
 </body>
